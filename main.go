@@ -22,12 +22,15 @@ func main() {
     }
     username = os.Args[2]
     fmt.Print("Enter your password: ")
-    passwd, err := terminal.ReadPassword(int(syscall.Stdin))
+    password, err := terminal.ReadPassword(int(syscall.Stdin))
     if err != nil {
         log.Fatal(err)
     }
-    internal.Auth(username)
-    internal.Auth(passwd)
+    
+    // PAM shouldnt have registration, but for now concept for admin input of users.
+    //internal.Register(username, password)
+    
+    internal.Auth(username,password)
     //fmt.Println(username)
     //fmt.Println(passwd)
 }
