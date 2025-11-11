@@ -48,6 +48,27 @@ func Allowed(username string) ([]string, error){
     return nil, fmt.Errorf("User not found")
 }
 
+func parseServers() []models.Server {
+    jsonfile, err := os.Open("servers.json")
+    if err != nil {
+        log.Fatal("Couldnt open servers.json", err)
+    }
+    defer jsonfile.Close()
+
+    bytes, err := ioutil.ReadAll(jsonfile)
+    if err != nil {
+        log.Fatal("Couldnt read users.json", err)
+    }
+
+    var server []models.Server
+    err = json.Unmarshal(bytes, &server)
+
+    if err != nil {
+        log.Fatal("Error unmarshalling")
+    }
+
+    return server
+}
 func initialModel(username string) TUI {
     servers, err := Allowed(username)
     if err != nil {
@@ -95,11 +116,16 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                 if s == server_name {
                     matched = true
                     t.ErrorMessage = ""
-                    // parse servers.json, match server_name and get password if exist.
-                    cmd := exec.Command("sshpass", "-p", "yourpasswordhere", "ssh", "localhost")
-                    return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
-                        return sshFinishedMsg{err: err}
-                    })
+                    servers_list := parseServers()
+                    for _, sl := range servers_list {
+                        if sl.Server == server_name {
+                            login := sl.Name + "@" + sl.IP
+                            cmd := exec.Command("sshpass", "-p", sl.Password, "ssh", login)
+                            return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
+                                return sshFinishedMsg{err: err}
+                            })
+                        }
+                    }
                 }
             }
  
