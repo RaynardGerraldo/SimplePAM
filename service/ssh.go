@@ -3,8 +3,13 @@ package service
 import (
     "fmt"
     "os"
+    "os/exec"
     tea "github.com/charmbracelet/bubbletea"
 )
+
+type sshFinishedMsg struct{
+    err error
+}
 
 type TUI struct {
     Choices  []string
@@ -14,7 +19,7 @@ type TUI struct {
 
 func initialModel() TUI {
     return TUI{
-        Choices: []string{"server prod", "server test", "server misc"},
+        Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
     }
 }
@@ -48,7 +53,17 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             } else {
                 t.Selected[t.Cursor] = struct{}{}
             }
+            cmd := exec.Command("sshpass", "-p", "yourpasswordhere", "ssh", "localhost")
+            return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
+                return sshFinishedMsg{err: err}
+            })
         }
+
+    case sshFinishedMsg:
+        t.Cursor = 0
+        // redefined new Selected, doesnt use previous one, forces checks to be removed
+        t.Selected = make(map[int]struct{})
+        return t, tea.ClearScreen
     }
     return t, nil
 }
