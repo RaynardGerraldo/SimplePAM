@@ -2,8 +2,8 @@ package internal
 
 import (
     "SimplePAM/models"
+    "SimplePAM/service"
     "golang.org/x/crypto/bcrypt"
-    "fmt"
     "os"
     "io/ioutil"
     "log"
@@ -11,8 +11,8 @@ import (
 )
 
 func CheckHash(hash []byte, password []byte) bool{
-    err := bcrypt.CompareHashAndPassword(hash, password)
-    return err == nil
+    valid := bcrypt.CompareHashAndPassword(hash, password)
+    return valid == nil
 }
 
 func Auth(username string, password []byte){
@@ -34,8 +34,8 @@ func Auth(username string, password []byte){
         log.Fatal("Error unmarshalling json", err)
     }
     if user.Username == username {
-        fmt.Println(CheckHash(user.Password, password))
+        service.SSH(CheckHash(user.Password, password))
     } else{
-        fmt.Println("\nNo username match")
+        service.SSH(false)
     }
 }
