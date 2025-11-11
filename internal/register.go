@@ -14,16 +14,14 @@ func Register(username string, password []byte){
     if err != nil{
         log.Fatal("Couldnt generate password")
     }
-    
+ 
     user.Username = username
     user.Password = bytes
+    user.Servers = []string{"server-prod", "server-test"}
 
-    /*user := User{
-        Username: username,
-        Password: bytes,
-    }*/
+    users := []models.User{user}
 
-    toJson, err := json.MarshalIndent(user, "", " ")
+    toJson, err := json.MarshalIndent(users, "", " ")
     if err != nil {
         log.Fatal("Couldnt parse to JSON")
     }

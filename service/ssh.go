@@ -1,6 +1,10 @@
 package service
 
 import (
+    "SimplePAM/models"
+    "io/ioutil"
+    "log"
+    "encoding/json"
     "fmt"
     "os"
     "os/exec"
@@ -15,12 +19,44 @@ type TUI struct {
     Choices  []string
     Cursor   int
     Selected map[int]struct{}
+    Servers  []string
+    ErrorMessage string
 }
 
-func initialModel() TUI {
+func Allowed(username string) ([]string, error){
+    // read from users.json, match username and password from args.
+    jsonfile, err := os.Open("users.json")
+    if err != nil {
+        log.Fatal("Couldnt open users.json", err)
+    }
+    defer jsonfile.Close()
+
+    bytes, err := ioutil.ReadAll(jsonfile)
+    if err != nil {
+        log.Fatal("Couldnt read users.json", err)
+    }
+    
+    var users []models.User
+    err = json.Unmarshal(bytes, &users)
+    
+    for _,u := range users {
+        if u.Username == username {
+            return u.Servers,nil
+        }
+    }
+
+    return nil, fmt.Errorf("User not found")
+}
+
+func initialModel(username string) TUI {
+    servers, err := Allowed(username)
+    if err != nil {
+        log.Fatal(err)
+    }
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
+        Servers: servers,
     }
 }
 
@@ -29,6 +65,7 @@ func (t TUI) Init() tea.Cmd {
 }
 
 func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+    var matched bool
     switch msg := msg.(type) {
 
     case tea.KeyMsg:
@@ -53,17 +90,32 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             } else {
                 t.Selected[t.Cursor] = struct{}{}
             }
-            cmd := exec.Command("sshpass", "-p", "yourpasswordhere", "ssh", "localhost")
-            return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
-                return sshFinishedMsg{err: err}
-            })
+            server_name := t.Choices[t.Cursor]
+            for _,s := range t.Servers {
+                if s == server_name {
+                    matched = true
+                    t.ErrorMessage = ""
+                    // parse servers.json, match server_name and get password if exist.
+                    cmd := exec.Command("sshpass", "-p", "yourpasswordhere", "ssh", "localhost")
+                    return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
+                        return sshFinishedMsg{err: err}
+                    })
+                }
+            }
+ 
+            if !matched {
+                t.Cursor = 0
+                t.Selected = make(map[int]struct{})
+                t.ErrorMessage = "You need to request access for this server."
+                return t, nil
+            }
         }
 
     case sshFinishedMsg:
         t.Cursor = 0
         // redefined new Selected, doesnt use previous one, forces checks to be removed
         t.Selected = make(map[int]struct{})
-        return t, tea.ClearScreen
+        return t, nil
     }
     return t, nil
 }
@@ -83,15 +135,18 @@ func (t TUI) View() string {
         s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
     }
 
+    if t.ErrorMessage != "" {
+        s += "\nError: " + t.ErrorMessage
+    }
     s += "\nPress q to quit.\n"
     return s
 }
 
-func SSH(auth bool) {
+func SSH(auth bool, username string) {
     if auth {
-        p := tea.NewProgram(initialModel())
+        p := tea.NewProgram(initialModel(username))
         if _, err := p.Run(); err != nil {
-            fmt.Printf("Alas, there's been an error: %v", err)
+            fmt.Printf("Error: %v", err)
             os.Exit(1)
         }
     } else {

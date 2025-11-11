@@ -7,6 +7,7 @@ import (
     "os"
     "io/ioutil"
     "log"
+    "fmt"
     "encoding/json"
 )
 
@@ -28,14 +29,17 @@ func Auth(username string, password []byte){
         log.Fatal("Couldnt read users.json", err)
     }
     
-    var user models.User
+    var user []models.User
     err = json.Unmarshal(bytes, &user)
     if err != nil {
         log.Fatal("Error unmarshalling json", err)
     }
-    if user.Username == username {
-        service.SSH(CheckHash(user.Password, password))
-    } else{
-        service.SSH(false)
+
+    for _, u := range user {
+        if u.Username == username {
+            service.SSH(CheckHash(u.Password, password), username)
+            return
+        }
     }
+    fmt.Println("\nUser not found, try again.")
 }
