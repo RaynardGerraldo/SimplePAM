@@ -2,6 +2,7 @@ package internal
 
 import (
     "SimplePAM/models"
+    "SimplePAM/internal"
     "golang.org/x/crypto/bcrypt"
     "log"
     "encoding/json"
@@ -10,6 +11,8 @@ import (
 
 func Register(username string, password []byte){
     var user models.User
+
+    // encrypt here with master key
     bytes, err := bcrypt.GenerateFromPassword(password, 14)
     if err != nil{
         log.Fatal("Couldnt generate password")
@@ -20,14 +23,5 @@ func Register(username string, password []byte){
     user.Servers = []string{"server-prod", "server-test"}
 
     users := []models.User{user}
-
-    toJson, err := json.MarshalIndent(users, "", " ")
-    if err != nil {
-        log.Fatal("Couldnt parse to JSON")
-    }
-
-    err = os.WriteFile("users.json", toJson, 0644)
-    if err != nil{
-        log.Fatal("Couldnt write to file")
-    }
+    internal.Writer(users, "users.json") 
 }
