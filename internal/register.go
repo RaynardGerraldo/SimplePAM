@@ -2,26 +2,30 @@ package internal
 
 import (
     "SimplePAM/models"
-    "SimplePAM/internal"
-    "golang.org/x/crypto/bcrypt"
+    "SimplePAM/parser"
+    "SimplePAM/crypto"
     "log"
-    "encoding/json"
-    "os"
+    "fmt"
+    "golang.org/x/crypto/ssh/terminal"
+    "syscall"
 )
 
-func Register(username string, password []byte){
+func Register(username string, DEK []byte){
     var user models.User
 
-    // encrypt here with master key
-    bytes, err := bcrypt.GenerateFromPassword(password, 14)
-    if err != nil{
-        log.Fatal("Couldnt generate password")
-    }
- 
     user.Username = username
-    user.Password = bytes
-    user.Servers = []string{"server-prod", "server-test"}
+    fmt.Printf("\nEnter %s's password: ", username)
+    password, err := terminal.ReadPassword(int(syscall.Stdin))
+    if err != nil {
+        log.Fatal(err)
+    }
+    hashed, salt, master_key := crypto.AddUser(password,DEK)
+    user.Hashed = hashed
+    user.Salt = salt
+    user.Master_Key = master_key
+    
+    user.Servers = []string{"server-prod"}
 
     users := []models.User{user}
-    internal.Writer(users, "users.json") 
+    parser.Writer(users, "users.json") 
 }

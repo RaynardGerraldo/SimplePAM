@@ -2,10 +2,13 @@ package models
 
 type User struct {
     Username string `json:"username"`
-    Password []byte `json:"password"`
-    Servers []string `json:servers"`
+    Hashed []byte `json:"hashed"`
+    Salt []byte `json:"salt"`
+    Master_Key []byte `json:"master_key"`
+    Servers []string `json:"servers"`
 }
 
+// ADJUST THIS FOR DEK
 type Server struct {
     Server string `json:"server"`
     Name string `json:"name"`

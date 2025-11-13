@@ -4,14 +4,10 @@ import (
     "fmt"
     "SimplePAM/internal"
     "os"
-    "syscall"
-    "golang.org/x/crypto/ssh/terminal"
     "log"
 )
 
 func main() {
-    //internal.InitServers()
-    //os.Exit(0)
     username := ""
     admin_option := ""
     if len(os.Args) > 1 {
@@ -22,12 +18,7 @@ func main() {
                 if len(username) == 0 {
                     log.Fatal("No username given, try again.")
                 }
-                fmt.Print("Enter your password: ")
-                password, err := terminal.ReadPassword(int(syscall.Stdin))
-                if err != nil {
-                    log.Fatal(err)
-                }
-                internal.Auth(username, password)
+                internal.Auth(username)
            } else {
                 log.Fatal("Not enough arguments, try again.")
            } 
@@ -37,15 +28,22 @@ func main() {
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
                 if admin_option == "init" {
+                    internal.Init()
                     //internal.Init() initializes admin and servers
                     // init cant be called again if theres already an admin present (check admin.json)
                     fmt.Printf("Call internal.Init() here")
                 } else if admin_option == "add-user" {
                     if len(os.Args) > 3 {
                         username = os.Args[3]
-                        // internal.Register(username) registers a new user
                         // Register can only run after admin is authenticated
-                        fmt.Printf("adding user: %s", username)
+                        DEK, err := internal.Auth(arg1)
+                        if err {
+                            internal.Register(username, DEK)
+                            fmt.Printf("adding user: %s", username)
+                        } else {
+                            log.Fatal("Not authorized.")
+                        }
+                        // internal.Register(username) registers a new user
                     } else {
                         fmt.Printf("Not enough arguments, try again")
                     }

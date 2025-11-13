@@ -1,7 +1,9 @@
-package internal
+package parser
 
 import (
     "encoding/json"
+    "log"
+    "os"
 )
 
 func Writer[T any](target []T, filename string) {

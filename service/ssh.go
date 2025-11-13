@@ -168,8 +168,9 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(auth bool, username string) {
-    if auth {
+func SSH(auth []byte, username string) {
+    fmt.Println(len(auth))
+    if len(auth) > 0 {
         p := tea.NewProgram(initialModel(username))
         if _, err := p.Run(); err != nil {
             fmt.Printf("Error: %v", err)
