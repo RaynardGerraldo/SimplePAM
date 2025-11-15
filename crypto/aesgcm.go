@@ -87,8 +87,7 @@ func AddUser(password []byte, key []byte) ([]byte, []byte, []byte){
 
 
 // output salt, udk, hashed, master key > users, admin
-// encrypt, step 1, hashes password to bcrypt, generate UDK from original password, then use DEK (key) + UDK to generate encrypted key
-// resulting in 2 things, hashed password (bcrypt), and encrypted_key (DEK + UDK)
+// encrypt, hashes password to bcrypt, generate UDK from original password, then use DEK (key) + UDK to generate encrypted key
 func Init(password []byte) ([]byte, []byte, []byte, []byte){
     // DEK random
     key := make([]byte, 32)

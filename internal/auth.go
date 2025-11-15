@@ -1,16 +1,13 @@
 package internal
 
 import (
-    "SimplePAM/models"
     "SimplePAM/service"
     "SimplePAM/crypto"
     "SimplePAM/parser"
+    "SimplePAM/models"
     "golang.org/x/crypto/bcrypt"
     "golang.org/x/crypto/scrypt"
-    "os"
-    "io/ioutil"
     "log"
-    "encoding/json"
 )
 
 func CheckHash(hash []byte, password []byte) bool{
@@ -19,23 +16,7 @@ func CheckHash(hash []byte, password []byte) bool{
 }
 
 func ReadCred(username string, password []byte, filename string) ([]byte, bool){
-    jsonfile, err := os.Open(filename)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer jsonfile.Close()
-
-    bytes, err := ioutil.ReadAll(jsonfile)
-    if err != nil {
-        log.Fatal("Couldnt read", err)
-    }
-    
-    var users []models.User
-    err = json.Unmarshal(bytes, &users)
-    if err != nil {
-        log.Fatal("Error unmarshalling json", err)
-    }
-
+    users := parser.Unmarshal(filename).([]models.User)
     for _, u := range users {
         if u.Username == username {
             if CheckHash(u.Hashed, password) {

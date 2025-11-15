@@ -3,9 +3,8 @@ package service
 import (
     "SimplePAM/models"
     "SimplePAM/crypto"
-    "io/ioutil"
+    "SimplePAM/parser"
     "log"
-    "encoding/json"
     "fmt"
     "os"
     "os/exec"
@@ -25,21 +24,8 @@ type TUI struct {
     Key []byte
 }
 
-func Allowed(username string) ([]string, error){
-    jsonfile, err := os.Open("users.json")
-    if err != nil {
-        log.Fatal("Couldnt open users.json", err)
-    }
-    defer jsonfile.Close()
-
-    bytes, err := ioutil.ReadAll(jsonfile)
-    if err != nil {
-        log.Fatal("Couldnt read users.json", err)
-    }
-    
-    var users []models.User
-    err = json.Unmarshal(bytes, &users)
-    
+func allowed(username string) ([]string, error){
+    users := parser.Unmarshal("users.json").([]models.User)
     for _,u := range users {
         if u.Username == username {
             return u.Servers,nil
@@ -50,28 +36,12 @@ func Allowed(username string) ([]string, error){
 }
 
 func parseServers() []models.Server {
-    jsonfile, err := os.Open("servers.json")
-    if err != nil {
-        log.Fatal("Couldnt open servers.json", err)
-    }
-    defer jsonfile.Close()
-
-    bytes, err := ioutil.ReadAll(jsonfile)
-    if err != nil {
-        log.Fatal("Couldnt read servers.json", err)
-    }
-
-    var server []models.Server
-    err = json.Unmarshal(bytes, &server)
-
-    if err != nil {
-        log.Fatal("Error unmarshalling")
-    }
-
+    server := parser.Unmarshal("servers.json").([]models.Server)
     return server
 }
+
 func initialModel(username string, key []byte) TUI {
-    servers, err := Allowed(username)
+    servers, err := allowed(username)
     if err != nil {
         log.Fatal(err)
     }
