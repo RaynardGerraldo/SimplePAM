@@ -2,6 +2,7 @@ package service
 
 import (
     "SimplePAM/models"
+    "SimplePAM/crypto"
     "io/ioutil"
     "log"
     "encoding/json"
@@ -21,6 +22,7 @@ type TUI struct {
     Selected map[int]struct{}
     Servers  []string
     ErrorMessage string
+    Key []byte
 }
 
 func Allowed(username string) ([]string, error){
@@ -69,7 +71,7 @@ func parseServers() []models.Server {
 
     return server
 }
-func initialModel(username string) TUI {
+func initialModel(username string, key []byte) TUI {
     servers, err := Allowed(username)
     if err != nil {
         log.Fatal(err)
@@ -78,6 +80,7 @@ func initialModel(username string) TUI {
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
         Servers: servers,
+        Key: key,
     }
 }
 
@@ -120,7 +123,11 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                     for _, sl := range servers_list {
                         if sl.Server == server_name {
                             login := sl.Name + "@" + sl.IP
-                            cmd := exec.Command("sshpass", "-p", sl.Password, "ssh", login)
+                            password,err := crypto.Decrypt(sl.Password, t.Key)
+                            if err != nil {
+                                log.Fatal("Cannot decrypt password: %v", err)
+                            }
+                            cmd := exec.Command("sshpass", "-p", string(password), "ssh", login)
                             return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
                                 return sshFinishedMsg{err: err}
                             })
@@ -168,10 +175,9 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(auth []byte, username string) {
-    fmt.Println(len(auth))
-    if len(auth) > 0 {
-        p := tea.NewProgram(initialModel(username))
+func SSH(key []byte, username string) {
+    if len(key) > 0 {
+        p := tea.NewProgram(initialModel(username, key))
         if _, err := p.Run(); err != nil {
             fmt.Printf("Error: %v", err)
             os.Exit(1)

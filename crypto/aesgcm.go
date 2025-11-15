@@ -13,54 +13,54 @@ import (
 )
 
 func Encrypt(plaintext []byte, key []byte) ([]byte, error) {
-	if len(key) != 32 {
-		return nil, fmt.Errorf("invalid key size: must be 32 bytes")
-	}
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+    if len(key) != 32 {
+        return nil, fmt.Errorf("invalid key size: must be 32 bytes")
+    }
+    c, err := aes.NewCipher(key)
+    if err != nil {
+        return nil, err
+    }
+    gcm, err := cipher.NewGCM(c)
+    if err != nil {
+        return nil, err
+    }
+    nonce := make([]byte, gcm.NonceSize())
+    if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+        return nil, err
+    }
+    return gcm.Seal(nonce, nonce, plaintext, nil), nil
 }
 
 func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
+    c, err := aes.NewCipher(key)
+    if err != nil {
+        return nil, err
+    }
 
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
-	}
+    gcm, err := cipher.NewGCM(c)
+    if err != nil {
+        return nil, err
+    }
 
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, errors.New("ciphertext too short")
-	}
+    nonceSize := gcm.NonceSize()
+    if len(ciphertext) < nonceSize {
+        return nil, errors.New("ciphertext too short")
+    }
 
-	nonce, actualCiphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+    nonce, actualCiphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 
-	plaintext, err := gcm.Open(nil, nonce, actualCiphertext, nil)
-	if err != nil {
-		return nil, err
-	}
+    plaintext, err := gcm.Open(nil, nonce, actualCiphertext, nil)
+    if err != nil {
+        return nil, err
+    }
 
-	return plaintext, nil
+    return plaintext, nil
 }
 
 // output salt, udk, hashed, master key > users, admin
 // encrypt, step 1, hashes password to bcrypt, generate UDK from original password, then use DEK (key) + UDK to generate encrypted key
 // resulting in 2 things, hashed password (bcrypt), and encrypted_key (DEK + UDK)
-func Init(password []byte) ([]byte, []byte, []byte){
+func Init(password []byte) ([]byte, []byte, []byte, []byte){
     // DEK random
     key := make([]byte, 32)
     _, err := rand.Read(key)
@@ -93,7 +93,7 @@ func Init(password []byte) ([]byte, []byte, []byte){
         log.Fatal("Couldnt generate master key")
     }
    
-    return hashed, salt, master_key
+    return hashed, salt, master_key, key
 }
 
 func AddUser(password []byte, key []byte) ([]byte, []byte, []byte){

@@ -13,5 +13,5 @@ type Server struct {
     Server string `json:"server"`
     Name string `json:"name"`
     IP string `json:"ip"`
-    Password string `json:"password"`
+    Password []byte `json:"password"`
 }

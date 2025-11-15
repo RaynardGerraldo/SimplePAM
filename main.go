@@ -39,7 +39,7 @@ func main() {
                         DEK, err := internal.Auth(arg1)
                         if err {
                             internal.Register(username, DEK)
-                            fmt.Printf("adding user: %s", username)
+                            fmt.Println("\nadding user: %s", username)
                         } else {
                             log.Fatal("Not authorized.")
                         }
