@@ -26,7 +26,6 @@ type TUI struct {
 }
 
 func Allowed(username string) ([]string, error){
-    // read from users.json, match username and password from args.
     jsonfile, err := os.Open("users.json")
     if err != nil {
         log.Fatal("Couldnt open users.json", err)
@@ -59,7 +58,7 @@ func parseServers() []models.Server {
 
     bytes, err := ioutil.ReadAll(jsonfile)
     if err != nil {
-        log.Fatal("Couldnt read users.json", err)
+        log.Fatal("Couldnt read servers.json", err)
     }
 
     var server []models.Server

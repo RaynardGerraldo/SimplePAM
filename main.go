@@ -31,7 +31,6 @@ func main() {
                     internal.Init()
                     //internal.Init() initializes admin and servers
                     // init cant be called again if theres already an admin present (check admin.json)
-                    fmt.Printf("Call internal.Init() here")
                 } else if admin_option == "add-user" {
                     if len(os.Args) > 3 {
                         username = os.Args[3]

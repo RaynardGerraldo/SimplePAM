@@ -5,21 +5,14 @@ import (
     "SimplePAM/parser"
     "SimplePAM/crypto"
     "fmt"
-    "syscall"
-    "golang.org/x/crypto/ssh/terminal"
     "log"
 )
 
 func toAdmin() {
     var admin models.User
-    fmt.Printf("Your admin username is 'admin' by default")
+    fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
-    fmt.Print("\nEnter your password: ")
-    password, err := terminal.ReadPassword(int(syscall.Stdin))
-    if err != nil {
-        log.Fatal(err)
-    }
-
+    password := parser.Prompt()
     hashed, salt, master_key, key := crypto.Init(password)
     admin.Hashed = hashed
     admin.Salt = salt
@@ -37,20 +30,14 @@ func toServer(key []byte) {
 
     fmt.Println("\nTry it out with your localhost")
     fmt.Printf("Server username? ")
-    fmt.Scan(&name)
-    
-    // encrypt with DEK
-    fmt.Printf("\nServer password? ")
-    //fmt.Scan(&password)
-    password, err := terminal.ReadPassword(int(syscall.Stdin))
-    if err != nil {
-        log.Fatal(err)
-    }
-
+    fmt.Scan(&name) 
+    fmt.Printf("Server password? ")
+    password := parser.Prompt()
     server.Server = "server-prod"
     server.Name = name
     server.IP = "localhost"
-    password, err = crypto.Encrypt(password, key)
+    // encrypt with DEK
+    password, err := crypto.Encrypt(password, key)
     if err != nil {
         log.Fatal(err)
     }

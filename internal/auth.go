@@ -4,15 +4,13 @@ import (
     "SimplePAM/models"
     "SimplePAM/service"
     "SimplePAM/crypto"
+    "SimplePAM/parser"
     "golang.org/x/crypto/bcrypt"
     "golang.org/x/crypto/scrypt"
     "os"
     "io/ioutil"
     "log"
-    "fmt"
     "encoding/json"
-    "golang.org/x/crypto/ssh/terminal"
-    "syscall"
 )
 
 func CheckHash(hash []byte, password []byte) bool{
@@ -23,7 +21,7 @@ func CheckHash(hash []byte, password []byte) bool{
 func ReadCred(username string, password []byte, filename string) ([]byte, bool){
     jsonfile, err := os.Open(filename)
     if err != nil {
-        log.Fatal("Couldnt open", err)
+        log.Fatal(err)
     }
     defer jsonfile.Close()
 
@@ -59,7 +57,7 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool){
                     service.SSH(DEK, username)
                 }
             } else {
-                log.Fatal("\nNot authorized")
+                log.Fatal("\nWrong credentials, try again.")
             }
         }
     }
@@ -67,12 +65,7 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool){
 }
 
 func Auth(username string) ([]byte, bool){
-    // read from users.json, match username and password from args.
-    fmt.Print("Enter your password: ")
-    password, err := terminal.ReadPassword(int(syscall.Stdin))
-    if err != nil {
-        log.Fatal(err)
-    }
+    password := parser.Prompt()
     if username == "admin" {
         return ReadCred(username, password, "admin.json")
     } else {
