@@ -8,6 +8,7 @@ import (
     "golang.org/x/crypto/bcrypt"
     "golang.org/x/crypto/scrypt"
     "log"
+    "fmt"
 )
 
 func CheckHash(hash []byte, password []byte) bool{
@@ -40,6 +41,8 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool){
             } else {
                 log.Fatal("\nWrong credentials, try again.")
             }
+        } else {
+            fmt.Println("\nUser doesnt exist.")
         }
     }
     return nil, false

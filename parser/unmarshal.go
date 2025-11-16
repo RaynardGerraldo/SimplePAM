@@ -18,7 +18,7 @@ func Unmarshal(filename string) any {
 
     bytes, err := ioutil.ReadAll(jsonfile)
     if err != nil {
-        log.Fatal("Couldnt read", err)
+        log.Fatal(err)
     }
     
     if filename == "users.json" || filename == "admin.json" {

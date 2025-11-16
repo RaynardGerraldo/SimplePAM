@@ -6,7 +6,6 @@ import (
     "SimplePAM/parser"
     "log"
     "fmt"
-    "os"
     "os/exec"
     tea "github.com/charmbracelet/bubbletea"
 )
@@ -148,10 +147,9 @@ func SSH(key []byte, username string) {
     if len(key) > 0 {
         p := tea.NewProgram(initialModel(username, key))
         if _, err := p.Run(); err != nil {
-            fmt.Printf("Error: %v", err)
-            os.Exit(1)
+            log.Fatal("TUI Error: ", err)
         }
     } else {
-        fmt.Println("\nYou are not logged in. Try again.")
+        log.Fatal("\nYou are not logged in. Try again.")
     }
 }
