@@ -1,18 +1,14 @@
 package internal
 
 import (
-    "SimplePAM/models"
     "SimplePAM/service"
     "SimplePAM/crypto"
+    "SimplePAM/parser"
+    "SimplePAM/models"
     "golang.org/x/crypto/bcrypt"
     "golang.org/x/crypto/scrypt"
-    "os"
-    "io/ioutil"
     "log"
     "fmt"
-    "encoding/json"
-    "golang.org/x/crypto/ssh/terminal"
-    "syscall"
 )
 
 func CheckHash(hash []byte, password []byte) bool{
@@ -21,23 +17,7 @@ func CheckHash(hash []byte, password []byte) bool{
 }
 
 func ReadCred(username string, password []byte, filename string) ([]byte, bool){
-    jsonfile, err := os.Open(filename)
-    if err != nil {
-        log.Fatal("Couldnt open", err)
-    }
-    defer jsonfile.Close()
-
-    bytes, err := ioutil.ReadAll(jsonfile)
-    if err != nil {
-        log.Fatal("Couldnt read", err)
-    }
-    
-    var users []models.User
-    err = json.Unmarshal(bytes, &users)
-    if err != nil {
-        log.Fatal("Error unmarshalling json", err)
-    }
-
+    users := parser.Unmarshal(filename).([]models.User)
     for _, u := range users {
         if u.Username == username {
             if CheckHash(u.Hashed, password) {
@@ -59,20 +39,17 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool){
                     service.SSH(DEK, username)
                 }
             } else {
-                log.Fatal("\nNot authorized")
+                log.Fatal("\nWrong credentials, try again.")
             }
+        } else {
+            fmt.Println("\nUser doesnt exist.")
         }
     }
     return nil, false
 }
 
 func Auth(username string) ([]byte, bool){
-    // read from users.json, match username and password from args.
-    fmt.Print("Enter your password: ")
-    password, err := terminal.ReadPassword(int(syscall.Stdin))
-    if err != nil {
-        log.Fatal(err)
-    }
+    password := parser.Prompt()
     if username == "admin" {
         return ReadCred(username, password, "admin.json")
     } else {

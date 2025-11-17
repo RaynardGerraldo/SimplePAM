@@ -2,11 +2,10 @@ package service
 
 import (
     "SimplePAM/models"
-    "io/ioutil"
+    "SimplePAM/crypto"
+    "SimplePAM/parser"
     "log"
-    "encoding/json"
     "fmt"
-    "os"
     "os/exec"
     tea "github.com/charmbracelet/bubbletea"
 )
@@ -21,24 +20,11 @@ type TUI struct {
     Selected map[int]struct{}
     Servers  []string
     ErrorMessage string
+    Key []byte
 }
 
-func Allowed(username string) ([]string, error){
-    // read from users.json, match username and password from args.
-    jsonfile, err := os.Open("users.json")
-    if err != nil {
-        log.Fatal("Couldnt open users.json", err)
-    }
-    defer jsonfile.Close()
-
-    bytes, err := ioutil.ReadAll(jsonfile)
-    if err != nil {
-        log.Fatal("Couldnt read users.json", err)
-    }
-    
-    var users []models.User
-    err = json.Unmarshal(bytes, &users)
-    
+func allowed(username string) ([]string, error){
+    users := parser.Unmarshal("users.json").([]models.User)
     for _,u := range users {
         if u.Username == username {
             return u.Servers,nil
@@ -49,28 +35,12 @@ func Allowed(username string) ([]string, error){
 }
 
 func parseServers() []models.Server {
-    jsonfile, err := os.Open("servers.json")
-    if err != nil {
-        log.Fatal("Couldnt open servers.json", err)
-    }
-    defer jsonfile.Close()
-
-    bytes, err := ioutil.ReadAll(jsonfile)
-    if err != nil {
-        log.Fatal("Couldnt read users.json", err)
-    }
-
-    var server []models.Server
-    err = json.Unmarshal(bytes, &server)
-
-    if err != nil {
-        log.Fatal("Error unmarshalling")
-    }
-
+    server := parser.Unmarshal("servers.json").([]models.Server)
     return server
 }
-func initialModel(username string) TUI {
-    servers, err := Allowed(username)
+
+func initialModel(username string, key []byte) TUI {
+    servers, err := allowed(username)
     if err != nil {
         log.Fatal(err)
     }
@@ -78,6 +48,7 @@ func initialModel(username string) TUI {
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
         Servers: servers,
+        Key: key,
     }
 }
 
@@ -120,7 +91,11 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                     for _, sl := range servers_list {
                         if sl.Server == server_name {
                             login := sl.Name + "@" + sl.IP
-                            cmd := exec.Command("sshpass", "-p", sl.Password, "ssh", login)
+                            password,err := crypto.Decrypt(sl.Password, t.Key)
+                            if err != nil {
+                                log.Fatal("Cannot decrypt password: %v", err)
+                            }
+                            cmd := exec.Command("sshpass", "-p", string(password), "ssh", login)
                             return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
                                 return sshFinishedMsg{err: err}
                             })
@@ -168,15 +143,13 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(auth []byte, username string) {
-    fmt.Println(len(auth))
-    if len(auth) > 0 {
-        p := tea.NewProgram(initialModel(username))
+func SSH(key []byte, username string) {
+    if len(key) > 0 {
+        p := tea.NewProgram(initialModel(username, key))
         if _, err := p.Run(); err != nil {
-            fmt.Printf("Error: %v", err)
-            os.Exit(1)
+            log.Fatal("TUI Error: ", err)
         }
     } else {
-        fmt.Println("\nYou are not logged in. Try again.")
+        log.Fatal("\nYou are not logged in. Try again.")
     }
 }

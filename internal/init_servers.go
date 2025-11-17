@@ -5,21 +5,15 @@ import (
     "SimplePAM/parser"
     "SimplePAM/crypto"
     "fmt"
-    "syscall"
-    "golang.org/x/crypto/ssh/terminal"
     "log"
 )
 
 func toAdmin() {
     var admin models.User
-    fmt.Printf("Your admin username is 'admin' by default")
+    fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
-    fmt.Print("\nEnter your password: ")
-    password, err := terminal.ReadPassword(int(syscall.Stdin))
-    if err != nil {
-        log.Fatal(err)
-    }
-    hashed, salt, master_key := crypto.Init(password)
+    password := parser.Prompt()
+    hashed, salt, master_key, key := crypto.Init(password)
     admin.Hashed = hashed
     admin.Salt = salt
     admin.Master_Key = master_key
@@ -27,27 +21,26 @@ func toAdmin() {
     
     admin_ins := []models.User{admin}
     parser.Writer(admin_ins, "admin.json")
+    toServer(key)
 }
 
-func toServer() {
+func toServer(key []byte) {
     var server models.Server
     var name string
-    var password string
 
-    fmt.Printf("Try it out with your localhost")
-    fmt.Printf("Username ? ")
-    fmt.Scan(&name)
-    fmt.Printf("\nServer password here: ")
-    fmt.Scan(&password)
-    
-    /*password, err := terminal.ReadPassword(int(syscall.Stdin))
-    if err != nil {
-        log.Fatal(err)
-    }*/
-
+    fmt.Println("\nTry it out with your localhost")
+    fmt.Printf("Server username? ")
+    fmt.Scan(&name) 
+    fmt.Printf("Server password? ")
+    password := parser.Prompt()
     server.Server = "server-prod"
     server.Name = name
     server.IP = "localhost"
+    // encrypt with DEK
+    password, err := crypto.Encrypt(password, key)
+    if err != nil {
+        log.Fatal(err)
+    }
     server.Password = password
 
     servers := []models.Server{server}
@@ -56,5 +49,4 @@ func toServer() {
 
 func Init(){
     toAdmin()
-    toServer()
 }
