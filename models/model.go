@@ -8,7 +8,6 @@ type User struct {
     Servers []string `json:"servers"`
 }
 
-// ADJUST THIS FOR DEK
 type Server struct {
     Server string `json:"server"`
     Name string `json:"name"`

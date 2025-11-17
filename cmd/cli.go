@@ -30,7 +30,11 @@ func Cli() {
                     fmt.Println("No users exist, run add-user.")
                     os.Exit(1)
                 }
-                internal.Auth(username)
+                _, _, err := internal.Auth(username)
+                if err != nil {
+                    fmt.Fprintf(os.Stderr, "Error during auth %v\n", err)
+                    os.Exit(1)
+                }
            } else {
                 fmt.Println("Not enough arguments, try again.")
            } 
@@ -49,7 +53,12 @@ func Cli() {
                     if len(os.Args) > 3 {
                         username = os.Args[3]
                         // Register can only run after admin is authenticated
-                        DEK, valid := internal.Auth(arg1)
+                        DEK, valid, err := internal.Auth(arg1)
+
+                        if err != nil {
+                            fmt.Fprintf(os.Stderr, "Error during auth %v\n", err)
+                            os.Exit(1)
+                        }
                         if valid {
                             internal.Register(username, DEK)
                             fmt.Println("\nadding user:", username)

@@ -23,8 +23,17 @@ type TUI struct {
     Key []byte
 }
 
-func allowed(username string) ([]string, error){
-    users := parser.Unmarshal("users.json").([]models.User)
+func allowed(username string) ([]string, error) {
+    raw, err := parser.Unmarshal("users.json")
+    if err != nil {
+        return nil, err
+    }
+
+    users, ok := raw.([]models.User)
+    if !ok {
+        return nil, fmt.Errorf("Invalid user format")
+    }
+
     for _,u := range users {
         if u.Username == username {
             return u.Servers,nil
@@ -34,22 +43,31 @@ func allowed(username string) ([]string, error){
     return nil, fmt.Errorf("User not found")
 }
 
-func parseServers() []models.Server {
-    server := parser.Unmarshal("servers.json").([]models.Server)
-    return server
+func parseServers() ([]models.Server, error) {
+    raw, err := parser.Unmarshal("servers.json")
+    if err != nil {
+        return nil, err
+    }
+
+    server, ok := raw.([]models.Server)
+    if !ok {
+        return nil, fmt.Errorf("Invalid server format")
+    }
+
+    return server, nil
 }
 
-func initialModel(username string, key []byte) TUI {
+func initialModel(username string, key []byte) (TUI,error) {
     servers, err := allowed(username)
     if err != nil {
-        log.Fatal(err)
+        return TUI{}, err
     }
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
         Servers: servers,
         Key: key,
-    }
+    }, nil
 }
 
 func (t TUI) Init() tea.Cmd {
@@ -87,7 +105,11 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                 if s == server_name {
                     matched = true
                     t.ErrorMessage = ""
-                    servers_list := parseServers()
+                    servers_list, err := parseServers()
+                    if err != nil {
+                        t.ErrorMessage = fmt.Sprintf("Couldnt parse servers: %v", err)
+                        return t, nil
+                    }
                     for _, sl := range servers_list {
                         if sl.Server == server_name {
                             login := sl.Name + "@" + sl.IP
@@ -143,13 +165,16 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(key []byte, username string) {
+func SSH(key []byte, username string) error{
     if len(key) > 0 {
-        p := tea.NewProgram(initialModel(username, key))
-        if _, err := p.Run(); err != nil {
-            log.Fatal("TUI Error: ", err)
+        model, err := initialModel(username, key)
+        if err != nil {
+            return fmt.Errorf("init failed: %w", err)
         }
-    } else {
-        log.Fatal("\nYou are not logged in. Try again.")
+        p := tea.NewProgram(model)
+        if _, err := p.Run(); err != nil {
+            return fmt.Errorf("TUI failed: %w", err)
+        }
     }
+    return fmt.Errorf("\nYou are not logged in. Try again.")
 }

@@ -5,15 +5,19 @@ import (
     "SimplePAM/parser"
     "SimplePAM/crypto"
     "fmt"
-    "log"
 )
 
-func toAdmin() {
+func toAdmin() error {
     var admin models.User
     fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
     password := parser.Prompt()
-    hashed, salt, master_key, key := crypto.Init(password)
+    hashed, salt, master_key, key, error_msg := crypto.Init(password)
+
+    if error_msg != nil {
+        return error_msg
+    }
+
     admin.Hashed = hashed
     admin.Salt = salt
     admin.Master_Key = master_key
@@ -22,9 +26,10 @@ func toAdmin() {
     admin_ins := []models.User{admin}
     parser.Writer(admin_ins, "admin.json")
     toServer(key)
+    return error_msg
 }
 
-func toServer(key []byte) {
+func toServer(key []byte) error {
     var server models.Server
     var name string
 
@@ -39,12 +44,13 @@ func toServer(key []byte) {
     // encrypt with DEK
     password, err := crypto.Encrypt(password, key)
     if err != nil {
-        log.Fatal(err)
+        return err
     }
     server.Password = password
 
     servers := []models.Server{server}
     parser.Writer(servers, "servers.json")
+    return err
 }
 
 func Init(){

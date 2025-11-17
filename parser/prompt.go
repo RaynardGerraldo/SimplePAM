@@ -30,6 +30,7 @@ func Prompt() []byte {
 
     fmt.Print("Enter password: ")
     password, err := terminal.ReadPassword(int(syscall.Stdin))
+    fmt.Println()
     if err != nil {
         term.Restore(int(syscall.Stdin), before)
         log.Fatal(err)

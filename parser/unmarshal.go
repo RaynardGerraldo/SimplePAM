@@ -5,20 +5,19 @@ import (
     "encoding/json"
     "os"
     "io/ioutil"
-    "log"
 )
 
-func Unmarshal(filename string) any {
+func Unmarshal(filename string) (any, error) {
     var unmarshalled any
     jsonfile, err := os.Open(filename)
     if err != nil {
-        log.Fatal(err)
+        return nil, err
     }
     defer jsonfile.Close()
 
     bytes, err := ioutil.ReadAll(jsonfile)
     if err != nil {
-        log.Fatal(err)
+        return nil, err
     }
     
     if filename == "users.json" || filename == "admin.json" {
@@ -31,5 +30,5 @@ func Unmarshal(filename string) any {
         unmarshalled = servers
     }
 
-    return unmarshalled
+    return unmarshalled, err
 }
