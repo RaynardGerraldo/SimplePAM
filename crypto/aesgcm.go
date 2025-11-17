@@ -83,7 +83,7 @@ func keyGen(password []byte, key []byte) ([]byte, []byte, []byte, error) {
 }
 
 func AddUser(password []byte, key []byte) ([]byte, []byte, []byte, error){
-    hashed, salt, master_key, error_msg := keyGen(password, key)   
+    hashed, salt, master_key, error_msg := keyGen(password, key)
     return hashed, salt, master_key, error_msg
 }
 

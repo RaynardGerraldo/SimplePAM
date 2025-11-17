@@ -42,13 +42,13 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool, 
                 if username == "admin" {
                     return DEK, true, nil
                 } else {
-                    service.SSH(DEK, username)
+                    return nil, false, service.SSH(DEK, username)
                 }
             } else {
-                return nil, false, fmt.Errorf("\nWrong credentials, try again.")
+                return nil, false, fmt.Errorf("Wrong credentials, try again.")
             }
         } else {
-            return nil, false, fmt.Errorf("\nUser doesnt exist.")
+            return nil, false, fmt.Errorf("User doesnt exist.")
         }
     }
     return nil, false, nil

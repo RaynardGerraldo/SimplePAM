@@ -4,7 +4,6 @@ import (
     "fmt"
     "SimplePAM/internal"
     "os"
-    "log"
 )
 
 func checkCreds(filename string) bool {
@@ -32,7 +31,7 @@ func Cli() {
                 }
                 _, _, err := internal.Auth(username)
                 if err != nil {
-                    fmt.Fprintf(os.Stderr, "Error during auth %v\n", err)
+                    fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
                     os.Exit(1)
                 }
            } else {
@@ -50,7 +49,7 @@ func Cli() {
                     }
                     err := internal.Init()
                     if err != nil {
-                        fmt.Fprintf(os.Stderr, "Failed to init admin %v\n", err)
+                        fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
                 } else if admin_option == "add-user" {
@@ -60,14 +59,18 @@ func Cli() {
                         DEK, valid, err := internal.Auth(arg1)
 
                         if err != nil {
-                            fmt.Fprintf(os.Stderr, "Error during auth %v\n", err)
+                            fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
                             os.Exit(1)
                         }
                         if valid {
-                            internal.Register(username, DEK)
+                            err := internal.Register(username, DEK) 
+                            if err != nil {
+                                fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
+                                os.Exit(1)
+                            }
                             fmt.Println("\nadding user:", username)
                         } else {
-                            log.Fatal("Not authorized.")
+                            fmt.Println("Not authorized")
                         }
                     } else {
                         fmt.Println("Specify user for add-user.")

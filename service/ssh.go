@@ -6,6 +6,7 @@ import (
     "SimplePAM/parser"
     "log"
     "fmt"
+    //"os"
     "os/exec"
     tea "github.com/charmbracelet/bubbletea"
 )
@@ -18,7 +19,8 @@ type TUI struct {
     Choices  []string
     Cursor   int
     Selected map[int]struct{}
-    Servers  []string
+    Server_List []models.Server
+    Allowed  []string
     ErrorMessage string
     Key []byte
 }
@@ -49,23 +51,23 @@ func parseServers() ([]models.Server, error) {
         return nil, err
     }
 
-    server, ok := raw.([]models.Server)
-    if !ok {
-        return nil, fmt.Errorf("Invalid server format")
+    servers, ok := raw.([]models.Server)
+    if !ok || len(servers) == 0 {
+        return nil, fmt.Errorf("Invalid servers.json format")
     }
-
-    return server, nil
+    return servers, nil
 }
 
-func initialModel(username string, key []byte) (TUI,error) {
-    servers, err := allowed(username)
+func initialModel(username string, key []byte, server_list []models.Server) (TUI,error) {
+    allowed_servers, err := allowed(username)
     if err != nil {
         return TUI{}, err
     }
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
-        Servers: servers,
+        Server_List: server_list,
+        Allowed: allowed_servers,
         Key: key,
     }, nil
 }
@@ -101,16 +103,11 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                 t.Selected[t.Cursor] = struct{}{}
             }
             server_name := t.Choices[t.Cursor]
-            for _,s := range t.Servers {
+            for _,s := range t.Allowed {
                 if s == server_name {
                     matched = true
                     t.ErrorMessage = ""
-                    servers_list, err := parseServers()
-                    if err != nil {
-                        t.ErrorMessage = fmt.Sprintf("Couldnt parse servers: %v", err)
-                        return t, nil
-                    }
-                    for _, sl := range servers_list {
+                    for _, sl := range t.Server_List {
                         if sl.Server == server_name {
                             login := sl.Name + "@" + sl.IP
                             password,err := crypto.Decrypt(sl.Password, t.Key)
@@ -167,7 +164,11 @@ func (t TUI) View() string {
 
 func SSH(key []byte, username string) error{
     if len(key) > 0 {
-        model, err := initialModel(username, key)
+        servers_list,err := parseServers()
+        if err != nil {
+            return err
+        }
+        model, err := initialModel(username, key, servers_list)
         if err != nil {
             return fmt.Errorf("init failed: %w", err)
         }

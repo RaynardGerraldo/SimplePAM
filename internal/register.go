@@ -25,5 +25,5 @@ func Register(username string, DEK []byte) error {
 
     users := []models.User{user}
     parser.Writer(users, "users.json")
-    return error_msg
+    return nil
 }
