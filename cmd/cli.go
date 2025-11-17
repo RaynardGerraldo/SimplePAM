@@ -48,7 +48,11 @@ func Cli() {
                         fmt.Println("Cant run init, admin already exists")
                         os.Exit(1)
                     }
-                    internal.Init()
+                    err := internal.Init()
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Failed to init admin %v\n", err)
+                        os.Exit(1)
+                    }
                 } else if admin_option == "add-user" {
                     if len(os.Args) > 3 {
                         username = os.Args[3]

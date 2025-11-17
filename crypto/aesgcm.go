@@ -11,9 +11,6 @@ import (
 )
 
 func Encrypt(plaintext []byte, key []byte) ([]byte, error) {
-    if len(key) != 32 {
-        return nil, fmt.Errorf("invalid key size: must be 32 bytes")
-    }
     c, err := aes.NewCipher(key)
     if err != nil {
         return nil, err
@@ -78,7 +75,7 @@ func keyGen(password []byte, key []byte) ([]byte, []byte, []byte, error) {
     }
 
     // master key
-    master_key,err := Encrypt(key, udk)
+    master_key, err := Encrypt(key, udk)
     if err != nil{
         return nil, nil, nil, fmt.Errorf("Failed to generate master key: %w", err)
     }
@@ -91,6 +88,7 @@ func AddUser(password []byte, key []byte) ([]byte, []byte, []byte, error){
 }
 
 func Init(password []byte) ([]byte, []byte, []byte, []byte, error){
+    // max 32
     key := make([]byte, 32)
     _, err := rand.Read(key)
     if err != nil {

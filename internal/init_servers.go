@@ -12,10 +12,10 @@ func toAdmin() error {
     fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
     password := parser.Prompt()
-    hashed, salt, master_key, key, error_msg := crypto.Init(password)
-
-    if error_msg != nil {
-        return error_msg
+    hashed, salt, master_key, key, err := crypto.Init(password)
+ 
+    if err != nil {
+        return err
     }
 
     admin.Hashed = hashed
@@ -25,8 +25,7 @@ func toAdmin() error {
     
     admin_ins := []models.User{admin}
     parser.Writer(admin_ins, "admin.json")
-    toServer(key)
-    return error_msg
+    return toServer(key)
 }
 
 func toServer(key []byte) error {
@@ -50,9 +49,9 @@ func toServer(key []byte) error {
 
     servers := []models.Server{server}
     parser.Writer(servers, "servers.json")
-    return err
+    return nil
 }
 
-func Init(){
-    toAdmin()
+func Init() error {
+    return toAdmin()
 }
