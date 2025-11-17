@@ -4,9 +4,7 @@ import (
     "SimplePAM/models"
     "SimplePAM/crypto"
     "SimplePAM/parser"
-    "log"
     "fmt"
-    //"os"
     "os/exec"
     tea "github.com/charmbracelet/bubbletea"
 )
@@ -112,7 +110,8 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                             login := sl.Name + "@" + sl.IP
                             password,err := crypto.Decrypt(sl.Password, t.Key)
                             if err != nil {
-                                log.Fatal("Cannot decrypt password: %v", err)
+                                t.ErrorMessage = fmt.Sprintf("Cannot decrypt password: %v", err)
+                                return t, nil
                             }
                             cmd := exec.Command("sshpass", "-p", string(password), "ssh", login)
                             return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
@@ -164,7 +163,7 @@ func (t TUI) View() string {
 
 func SSH(key []byte, username string) error{
     if len(key) > 0 {
-        servers_list,err := parseServers()
+        servers_list, err := parseServers()
         if err != nil {
             return err
         }
@@ -176,6 +175,8 @@ func SSH(key []byte, username string) error{
         if _, err := p.Run(); err != nil {
             return fmt.Errorf("TUI failed: %w", err)
         }
+    } else {
+        return fmt.Errorf("\nYou are not logged in. Try again.")
     }
-    return fmt.Errorf("\nYou are not logged in. Try again.")
+    return nil
 }

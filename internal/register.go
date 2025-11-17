@@ -12,7 +12,11 @@ func Register(username string, DEK []byte) error {
 
     user.Username = username
     fmt.Printf("\n%s's password ", username)
-    password := parser.Prompt()
+    password,err := parser.Prompt()
+    if err != nil {
+        return err
+    }
+
     hashed, salt, master_key, error_msg := crypto.AddUser(password,DEK)
     if error_msg != nil {
         return error_msg
@@ -24,6 +28,9 @@ func Register(username string, DEK []byte) error {
     user.Servers = []string{"server-prod"}
 
     users := []models.User{user}
-    parser.Writer(users, "users.json")
+    err = parser.Writer(users, "users.json")
+    if err != nil {
+        return err
+    }
     return nil
 }

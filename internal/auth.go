@@ -55,7 +55,10 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool, 
 }
 
 func Auth(username string) ([]byte, bool, error){
-    password := parser.Prompt()
+    password,err := parser.Prompt()
+    if err != nil {
+        return nil, false , err
+    }
     if username == "admin" {
         return ReadCred(username, password, "admin.json")
     }
