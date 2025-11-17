@@ -4,7 +4,6 @@ import (
     "SimplePAM/models"
     "SimplePAM/crypto"
     "SimplePAM/parser"
-    "log"
     "fmt"
     "os/exec"
     tea "github.com/charmbracelet/bubbletea"
@@ -18,13 +17,23 @@ type TUI struct {
     Choices  []string
     Cursor   int
     Selected map[int]struct{}
-    Servers  []string
+    Server_List []models.Server
+    Allowed  []string
     ErrorMessage string
     Key []byte
 }
 
-func allowed(username string) ([]string, error){
-    users := parser.Unmarshal("users.json").([]models.User)
+func allowed(username string) ([]string, error) {
+    raw, err := parser.Unmarshal("users.json")
+    if err != nil {
+        return nil, err
+    }
+
+    users, ok := raw.([]models.User)
+    if !ok {
+        return nil, fmt.Errorf("Invalid user format")
+    }
+
     for _,u := range users {
         if u.Username == username {
             return u.Servers,nil
@@ -34,22 +43,31 @@ func allowed(username string) ([]string, error){
     return nil, fmt.Errorf("User not found")
 }
 
-func parseServers() []models.Server {
-    server := parser.Unmarshal("servers.json").([]models.Server)
-    return server
+func parseServers() ([]models.Server, error) {
+    raw, err := parser.Unmarshal("servers.json")
+    if err != nil {
+        return nil, err
+    }
+
+    servers, ok := raw.([]models.Server)
+    if !ok || len(servers) == 0 {
+        return nil, fmt.Errorf("Invalid servers.json format")
+    }
+    return servers, nil
 }
 
-func initialModel(username string, key []byte) TUI {
-    servers, err := allowed(username)
+func initialModel(username string, key []byte, server_list []models.Server) (TUI,error) {
+    allowed_servers, err := allowed(username)
     if err != nil {
-        log.Fatal(err)
+        return TUI{}, err
     }
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
-        Servers: servers,
+        Server_List: server_list,
+        Allowed: allowed_servers,
         Key: key,
-    }
+    }, nil
 }
 
 func (t TUI) Init() tea.Cmd {
@@ -83,17 +101,17 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                 t.Selected[t.Cursor] = struct{}{}
             }
             server_name := t.Choices[t.Cursor]
-            for _,s := range t.Servers {
+            for _,s := range t.Allowed {
                 if s == server_name {
                     matched = true
                     t.ErrorMessage = ""
-                    servers_list := parseServers()
-                    for _, sl := range servers_list {
+                    for _, sl := range t.Server_List {
                         if sl.Server == server_name {
                             login := sl.Name + "@" + sl.IP
                             password,err := crypto.Decrypt(sl.Password, t.Key)
                             if err != nil {
-                                log.Fatal("Cannot decrypt password: %v", err)
+                                t.ErrorMessage = fmt.Sprintf("Cannot decrypt password: %v", err)
+                                return t, nil
                             }
                             cmd := exec.Command("sshpass", "-p", string(password), "ssh", login)
                             return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
@@ -143,13 +161,22 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(key []byte, username string) {
+func SSH(key []byte, username string) error{
     if len(key) > 0 {
-        p := tea.NewProgram(initialModel(username, key))
+        servers_list, err := parseServers()
+        if err != nil {
+            return err
+        }
+        model, err := initialModel(username, key, servers_list)
+        if err != nil {
+            return fmt.Errorf("init failed: %w", err)
+        }
+        p := tea.NewProgram(model)
         if _, err := p.Run(); err != nil {
-            log.Fatal("TUI Error: ", err)
+            return fmt.Errorf("TUI failed: %w", err)
         }
     } else {
-        log.Fatal("\nYou are not logged in. Try again.")
+        return fmt.Errorf("\nYou are not logged in. Try again.")
     }
+    return nil
 }

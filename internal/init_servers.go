@@ -5,26 +5,37 @@ import (
     "SimplePAM/parser"
     "SimplePAM/crypto"
     "fmt"
-    "log"
 )
 
-func toAdmin() {
+func toAdmin() error {
     var admin models.User
     fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
-    password := parser.Prompt()
-    hashed, salt, master_key, key := crypto.Init(password)
+    password,err := parser.Prompt()
+    if err != nil {
+        return err
+    }
+
+    hashed, salt, master_key, key, err := crypto.Init(password)
+ 
+    if err != nil {
+        return err
+    }
+
     admin.Hashed = hashed
     admin.Salt = salt
     admin.Master_Key = master_key
     admin.Servers = []string{}
     
     admin_ins := []models.User{admin}
-    parser.Writer(admin_ins, "admin.json")
-    toServer(key)
+    err = parser.Writer(admin_ins, "admin.json")
+    if err != nil {
+        return err
+    }
+    return toServer(key)
 }
 
-func toServer(key []byte) {
+func toServer(key []byte) error {
     var server models.Server
     var name string
 
@@ -32,21 +43,30 @@ func toServer(key []byte) {
     fmt.Printf("Server username? ")
     fmt.Scan(&name) 
     fmt.Printf("Server password? ")
-    password := parser.Prompt()
+    password,err := parser.Prompt()
+    if err != nil {
+        return err
+    }
+
     server.Server = "server-prod"
     server.Name = name
     server.IP = "localhost"
     // encrypt with DEK
-    password, err := crypto.Encrypt(password, key)
+    password, err = crypto.Encrypt(password, key)
     if err != nil {
-        log.Fatal(err)
+        return err
     }
     server.Password = password
 
     servers := []models.Server{server}
-    parser.Writer(servers, "servers.json")
+    err = parser.Writer(servers, "servers.json")
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
 
-func Init(){
-    toAdmin()
+func Init() error {
+    return toAdmin()
 }

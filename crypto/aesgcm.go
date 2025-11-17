@@ -5,16 +5,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
-    "log"
 	"io"
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func Encrypt(plaintext []byte, key []byte) ([]byte, error) {
-    if len(key) != 32 {
-        return nil, fmt.Errorf("invalid key size: must be 32 bytes")
-    }
     c, err := aes.NewCipher(key)
     if err != nil {
         return nil, err
@@ -56,70 +52,48 @@ func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
     return plaintext, nil
 }
 
-func AddUser(password []byte, key []byte) ([]byte, []byte, []byte){
+// output salt, udk, hashed, master key > users, admin
+// encrypt, hashes password to bcrypt, generate UDK from original password, then use DEK (key) + UDK to generate encrypted key
+func keyGen(password []byte, key []byte) ([]byte, []byte, []byte, error) {
     // salt
     salt := make([]byte, 16)
     _, err := rand.Read(salt)
     if err != nil {
-        log.Fatal("Cant generate salt: %v", err)
+        return nil, nil, nil, fmt.Errorf("Failed to generate salt: %w", err)
     }
 
     // udk
     udk, err := scrypt.Key(password, salt, 32768, 8, 1, 32)
     if err != nil {
-        log.Fatal("Failed to generate udk: %v", err)
+        return nil, nil, nil, fmt.Errorf("Failed to generate udk: %w", err)
     }
 
     // hashed pass
     hashed, err := bcrypt.GenerateFromPassword(password, 14)
     if err != nil{
-        log.Fatal("Couldnt generate password: %v", err)
+        return nil, nil, nil, fmt.Errorf("Failed to generate hashed password: %w", err)
     }
 
     // master key
-    master_key,err := Encrypt(key, udk)
+    master_key, err := Encrypt(key, udk)
     if err != nil{
-        log.Fatal("Couldnt generate master key: %v", err)
+        return nil, nil, nil, fmt.Errorf("Failed to generate master key: %w", err)
     }
-   
-    return hashed, salt, master_key
+    return hashed, salt, master_key, nil
 }
 
+func AddUser(password []byte, key []byte) ([]byte, []byte, []byte, error){
+    hashed, salt, master_key, error_msg := keyGen(password, key)
+    return hashed, salt, master_key, error_msg
+}
 
-// output salt, udk, hashed, master key > users, admin
-// encrypt, hashes password to bcrypt, generate UDK from original password, then use DEK (key) + UDK to generate encrypted key
-func Init(password []byte) ([]byte, []byte, []byte, []byte){
-    // DEK random
+func Init(password []byte) ([]byte, []byte, []byte, []byte, error){
+    // max 32
     key := make([]byte, 32)
     _, err := rand.Read(key)
     if err != nil {
-        log.Fatal("Failed to generate random key: %v", err)
+        return nil, nil, nil, nil, fmt.Errorf("Failed to generate random key: %w", err)
     }
-    
-    // salt
-    salt := make([]byte, 16)
-    _, err = rand.Read(salt)
-    if err != nil {
-        log.Fatal("Cant generate salt: %v", err)
-    }
-
-    // udk
-    udk, err := scrypt.Key(password, salt, 32768, 8, 1, 32)
-    if err != nil {
-        log.Fatal("Failed to generate udk: %v", err)
-    }
-
-    // hashed pass
-    hashed, err := bcrypt.GenerateFromPassword(password, 14)
-    if err != nil{
-        log.Fatal("Couldnt generate password: %v", err)
-    }
-
-    // master key
-    master_key,err := Encrypt(key, udk)
-    if err != nil{
-        log.Fatal("Couldnt generate master key: %v", err)
-    }
-   
-    return hashed, salt, master_key, key
+    hashed, salt, master_key, error_msg := keyGen(password, key)
+    return hashed, salt, master_key, key, error_msg
 }

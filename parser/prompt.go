@@ -7,14 +7,13 @@ import (
     "syscall"
     "golang.org/x/term"
     "golang.org/x/crypto/ssh/terminal"
-    "log"
 )
 
-func Prompt() []byte {
+func Prompt() ([]byte,error) {
     // old term state
     before, err := term.GetState(int(syscall.Stdin))
     if err != nil {
-        panic(err)
+        return nil, fmt.Errorf("stdin is not a terminal: %w", err)
     }
 
     // monitor for sigint or sigterm (ctrl c)
@@ -30,9 +29,10 @@ func Prompt() []byte {
 
     fmt.Print("Enter password: ")
     password, err := terminal.ReadPassword(int(syscall.Stdin))
+    fmt.Println()
     if err != nil {
         term.Restore(int(syscall.Stdin), before)
-        log.Fatal(err)
+        return nil, fmt.Errorf("failed to read password: %w", err)
     }
-    return password
+    return password, nil
 }

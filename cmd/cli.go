@@ -4,7 +4,6 @@ import (
     "fmt"
     "SimplePAM/internal"
     "os"
-    "log"
 )
 
 func checkCreds(filename string) bool {
@@ -30,7 +29,11 @@ func Cli() {
                     fmt.Println("No users exist, run add-user.")
                     os.Exit(1)
                 }
-                internal.Auth(username)
+                _, _, err := internal.Auth(username)
+                if err != nil {
+                    fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
+                    os.Exit(1)
+                }
            } else {
                 fmt.Println("Not enough arguments, try again.")
            } 
@@ -44,17 +47,30 @@ func Cli() {
                         fmt.Println("Cant run init, admin already exists")
                         os.Exit(1)
                     }
-                    internal.Init()
+                    err := internal.Init()
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
+                        os.Exit(1)
+                    }
                 } else if admin_option == "add-user" {
                     if len(os.Args) > 3 {
                         username = os.Args[3]
                         // Register can only run after admin is authenticated
-                        DEK, valid := internal.Auth(arg1)
+                        DEK, valid, err := internal.Auth(arg1)
+
+                        if err != nil {
+                            fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
+                            os.Exit(1)
+                        }
                         if valid {
-                            internal.Register(username, DEK)
+                            err := internal.Register(username, DEK) 
+                            if err != nil {
+                                fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
+                                os.Exit(1)
+                            }
                             fmt.Println("\nadding user:", username)
                         } else {
-                            log.Fatal("Not authorized.")
+                            fmt.Println("Not authorized")
                         }
                     } else {
                         fmt.Println("Specify user for add-user.")
