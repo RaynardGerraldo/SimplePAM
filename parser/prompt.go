@@ -9,7 +9,7 @@ import (
     "golang.org/x/crypto/ssh/terminal"
 )
 
-func Prompt() ([]byte,error) {
+func Prompt(username string) ([]byte,error) {
     // old term state
     before, err := term.GetState(int(syscall.Stdin))
     if err != nil {
@@ -27,7 +27,7 @@ func Prompt() ([]byte,error) {
         os.Exit(1)
     }()
 
-    fmt.Print("Enter password: ")
+    fmt.Printf("Enter password for %s: ", username)
     password, err := terminal.ReadPassword(int(syscall.Stdin))
     fmt.Println()
     if err != nil {

@@ -63,7 +63,7 @@ func Cli() {
                             os.Exit(1)
                         }
                         if valid {
-                            err := internal.Register(username, DEK) 
+                            err := internal.Register(username, DEK, checkCreds("users.json"))
                             if err != nil {
                                 fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
                                 os.Exit(1)

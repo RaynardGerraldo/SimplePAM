@@ -11,7 +11,7 @@ func toAdmin() error {
     var admin models.User
     fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
-    password,err := parser.Prompt()
+    password,err := parser.Prompt(admin.Username)
     if err != nil {
         return err
     }
@@ -41,9 +41,9 @@ func toServer(key []byte) error {
 
     fmt.Println("\nTry it out with your localhost")
     fmt.Printf("Server username? ")
-    fmt.Scan(&name) 
-    fmt.Printf("Server password? ")
-    password,err := parser.Prompt()
+    fmt.Scan(&name)
+
+    password,err := parser.Prompt("server " + name)
     if err != nil {
         return err
     }
@@ -63,7 +63,7 @@ func toServer(key []byte) error {
     if err != nil {
         return err
     }
-
+    fmt.Println("admin and server initialized.")
     return nil
 }
 
