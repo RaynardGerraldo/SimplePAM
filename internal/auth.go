@@ -37,16 +37,14 @@ func ReadCred(db *gorm.DB, username string, password []byte) ([]byte, bool, erro
                 if username == "admin" {
                     return DEK, true, nil
                 } else {
-                    return nil, false, service.SSH(DEK, username)
+                    return nil, false, service.SSH(db, DEK, username)
                 }
             } else {
                 return nil, false, fmt.Errorf("Wrong credentials, try again.")
             }
-        } else {
-            return nil, false, fmt.Errorf("User doesnt exist.")
-        }
+        }     
     }
-    return nil, false, nil
+    return nil, false, fmt.Errorf("User doesnt exist.")
 }
 
 func Auth(db *gorm.DB, username string) ([]byte, bool, error){

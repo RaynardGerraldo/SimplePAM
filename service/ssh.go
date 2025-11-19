@@ -3,7 +3,8 @@ package service
 import (
     "SimplePAM/models"
     "SimplePAM/crypto"
-    "SimplePAM/parser"
+    //"SimplePAM/parser"
+    "gorm.io/gorm"
     "fmt"
     "golang.org/x/crypto/ssh"
     "os"
@@ -82,45 +83,37 @@ func internalSSH(username string, password string, ip string) error {
     return session.Wait()
 }
 
-func allowed(username string) ([]string, error) {
-    raw, err := parser.Unmarshal("users.json")
-    if err != nil {
-        return nil, err
-    }
-
-    users, ok := raw.([]models.User)
-    if !ok {
-        return nil, fmt.Errorf("Invalid user format")
-    }
-
+func allowed(db *gorm.DB, username string) []string {
+    var users []models.User
+    var all []string
+    db.Preload("Servers").Where("username = ?", username).First(&users)
+    
     for _,u := range users {
         if u.Username == username {
-            //return u.Servers,nil
-            return []string{"apple"}, nil
+            for _,s := range u.Servers {
+                all = append(all, s.Server)
+            }
         }
     }
-
-    return nil, fmt.Errorf("User not found")
+    return all
+    //return nil, fmt.Errorf("User not found")
 }
 
-func parseServers() ([]models.Server, error) {
-    raw, err := parser.Unmarshal("servers.json")
-    if err != nil {
-        return nil, err
-    }
-
-    servers, ok := raw.([]models.Server)
-    if !ok || len(servers) == 0 {
+func parseServers(db *gorm.DB) []models.Server {
+    var servers []models.Server
+    db.Find(&servers)
+    
+    /*if *server == 0 {
         return nil, fmt.Errorf("Invalid servers.json format")
-    }
-    return servers, nil
+    }*/
+    return servers
 }
 
-func initialModel(username string, key []byte, server_list []models.Server) (TUI,error) {
-    allowed_servers, err := allowed(username)
-    if err != nil {
+func initialModel(db *gorm.DB, username string, key []byte, server_list []models.Server) (TUI,error) {
+    allowed_servers := allowed(db, username)
+    /*if err != nil {
         return TUI{}, err
-    }
+    }*/
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
@@ -213,18 +206,19 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(key []byte, username string) error {
+func SSH(db *gorm.DB, key []byte, username string) error {
     if len(key) == 0 {
         return fmt.Errorf("\nYou are not logged in. Try again.")
     }
-    servers_list, err := parseServers()
-    if err != nil {
+    servers_list := parseServers(db)
+    
+    /*if err != nil {
         return err
-    }
+    }*/
 
     // loop, load up TUI, wait for either "q" or server selection, then quit or ssh in. if ssh in loop back to TUI after.
     for {
-        model, err := initialModel(username, key, servers_list)
+        model, err := initialModel(db, username, key, servers_list)
         if err != nil {
             return fmt.Errorf("init failed: %w", err)
         }
