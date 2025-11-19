@@ -7,7 +7,6 @@ import (
   "fmt"
 )
 
-
 func OpenCon() (*gorm.DB, error) {
     db, err := gorm.Open(sqlite.Open("pam.db"), &gorm.Config{})
     if err != nil {

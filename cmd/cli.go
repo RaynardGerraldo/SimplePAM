@@ -26,13 +26,14 @@ func Cli() {
                 if len(username) == 0 {
                     fmt.Println("No username given, try again.")
                 }
-                /*if !checkCreds("users.json") {
-                    fmt.Println("No users exist, run add-user.")
-                    os.Exit(1)
-                }*/
                 db,err := parser.OpenCon()
                 if err != nil {
                     fmt.Println("Failed to open connection to db: %w", err)
+                    os.Exit(1)
+                }
+                _, err = parser.ReadUsernameDB(db, username)
+                if err != nil {
+                    fmt.Println("No users exist, run add-user.")
                     os.Exit(1)
                 }
                 _, _, err = internal.Auth(db, username)
@@ -54,10 +55,11 @@ func Cli() {
                         fmt.Println("Failed to open connection to db: %w", err)
                         os.Exit(1)
                     }
-                    /*if checkCreds("admin.json") {
+                    _, err = parser.ReadUsernameDB(db, arg1)
+                    if err == nil {
                         fmt.Println("Cant run init, admin already exists")
                         os.Exit(1)
-                    }*/
+                    }
                     err = internal.Init(db)
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
