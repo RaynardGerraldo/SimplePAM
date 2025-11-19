@@ -5,7 +5,7 @@ a really basic implementation of a Privileged Access Management
 currently starting "Phase 1" to make it a little more professional: 
 
 - [x] Internal SSH instead of exec
-- [ ] JSON to DB
+- [x] JSON to DB
 - [ ] API Endpoints
 
 
