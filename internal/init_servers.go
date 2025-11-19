@@ -4,10 +4,11 @@ import (
     "SimplePAM/models"
     "SimplePAM/parser"
     "SimplePAM/crypto"
+    "gorm.io/gorm"
     "fmt"
 )
 
-func toAdmin() error {
+func toAdmin(db *gorm.DB) error {
     var admin models.User
     fmt.Println("Your admin username is 'admin' by default")
     admin.Username = "admin"
@@ -21,24 +22,20 @@ func toAdmin() error {
     if err != nil {
         return err
     }
+    
+    parser.InitDB(db, &models.User{})
 
     admin.Hashed = hashed
     admin.Salt = salt
     admin.Master_Key = master_key
-    admin.Servers = []string{}
-    
-    admin_ins := []models.User{admin}
-    err = parser.Writer(admin_ins, "admin.json")
-    if err != nil {
-        return err
-    }
-    return toServer(key)
+    parser.WriteDB(db, admin)
+
+    return toServer(db, key)
 }
 
-func toServer(key []byte) error {
+func toServer(db *gorm.DB, key []byte) error {
     var server models.Server
     var name string
-
     fmt.Println("\nTry it out with your localhost")
     fmt.Printf("Server username? ")
     fmt.Scan(&name)
@@ -47,6 +44,8 @@ func toServer(key []byte) error {
     if err != nil {
         return err
     }
+
+    parser.InitDB(db, &models.Server{})
 
     server.Server = "server-prod"
     server.Name = name
@@ -57,16 +56,13 @@ func toServer(key []byte) error {
         return err
     }
     server.Password = password
+    
+    parser.WriteDB(db, server)
 
-    servers := []models.Server{server}
-    err = parser.Writer(servers, "servers.json")
-    if err != nil {
-        return err
-    }
     fmt.Println("admin and server initialized.")
     return nil
 }
 
-func Init() error {
-    return toAdmin()
+func Init(db *gorm.DB) error {
+    return toAdmin(db)
 }

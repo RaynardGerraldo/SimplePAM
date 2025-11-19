@@ -3,6 +3,7 @@ package cmd
 import (
     "fmt"
     "SimplePAM/internal"
+    "SimplePAM/parser"
     "os"
 )
 
@@ -25,11 +26,16 @@ func Cli() {
                 if len(username) == 0 {
                     fmt.Println("No username given, try again.")
                 }
-                if !checkCreds("users.json") {
+                /*if !checkCreds("users.json") {
                     fmt.Println("No users exist, run add-user.")
                     os.Exit(1)
+                }*/
+                db,err := parser.OpenCon()
+                if err != nil {
+                    fmt.Println("Failed to open connection to db: %w", err)
+                    os.Exit(1)
                 }
-                _, _, err := internal.Auth(username)
+                _, _, err = internal.Auth(db, username)
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
                     os.Exit(1)
@@ -43,31 +49,40 @@ func Cli() {
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
                 if admin_option == "init" {
-                    if checkCreds("admin.json") {
-                        fmt.Println("Cant run init, admin already exists")
+                    db,err := parser.OpenCon()
+                    if err != nil {
+                        fmt.Println("Failed to open connection to db: %w", err)
                         os.Exit(1)
                     }
-                    err := internal.Init()
+                    /*if checkCreds("admin.json") {
+                        fmt.Println("Cant run init, admin already exists")
+                        os.Exit(1)
+                    }*/
+                    err = internal.Init(db)
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
                 } else if admin_option == "add-user" {
-                    if !checkCreds("admin.json") || !checkCreds("servers.json") {
+                    if !checkCreds("pam.db") {
                         fmt.Fprintf(os.Stderr, "Run init first.\n")
                         os.Exit(1)
                     }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
                         // Register can only run after admin is authenticated
-                        DEK, valid, err := internal.Auth(arg1)
-
+                        db,err := parser.OpenCon()
+                        DEK, valid, err := internal.Auth(db, arg1)
+                        if err != nil {
+                            fmt.Println("Failed to open connection to db: %w", err)
+                            os.Exit(1)
+                        }
                         if err != nil {
                             fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
                             os.Exit(1)
                         }
                         if valid {
-                            err := internal.Register(username, DEK, checkCreds("users.json"))
+                            err := internal.Register(db, username, DEK)
                             if err != nil {
                                 fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
                                 os.Exit(1)

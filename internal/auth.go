@@ -7,6 +7,7 @@ import (
     "SimplePAM/models"
     "golang.org/x/crypto/bcrypt"
     "golang.org/x/crypto/scrypt"
+    "gorm.io/gorm"
     "fmt"
 )
 
@@ -15,16 +16,10 @@ func CheckHash(hash []byte, password []byte) bool{
     return valid == nil
 }
 
-func ReadCred(username string, password []byte, filename string) ([]byte, bool, error){
-    raw, err := parser.Unmarshal(filename)
-    if err != nil {
-        return nil, false, err
-    }
-    users, ok := raw.([]models.User)
-    if !ok {
-        return nil, false, fmt.Errorf("Invalid user format")
-    }
-
+func ReadCred(db *gorm.DB, username string, password []byte) ([]byte, bool, error){
+    var users []models.User
+    db.Find(&users)
+ 
     for _, u := range users {
         if u.Username == username {
             if CheckHash(u.Hashed, password) {
@@ -54,13 +49,10 @@ func ReadCred(username string, password []byte, filename string) ([]byte, bool, 
     return nil, false, nil
 }
 
-func Auth(username string) ([]byte, bool, error){
+func Auth(db *gorm.DB, username string) ([]byte, bool, error){
     password,err := parser.Prompt(username)
     if err != nil {
         return nil, false, err
     }
-    if username == "admin" {
-        return ReadCred(username, password, "admin.json")
-    }
-    return ReadCred(username, password, "users.json")
+    return ReadCred(db, username, password)
 }

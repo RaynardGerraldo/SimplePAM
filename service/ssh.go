@@ -95,7 +95,8 @@ func allowed(username string) ([]string, error) {
 
     for _,u := range users {
         if u.Username == username {
-            return u.Servers,nil
+            //return u.Servers,nil
+            return []string{"apple"}, nil
         }
     }
 
