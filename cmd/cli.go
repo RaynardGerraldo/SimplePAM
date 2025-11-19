@@ -53,6 +53,10 @@ func Cli() {
                         os.Exit(1)
                     }
                 } else if admin_option == "add-user" {
+                    if !checkCreds("admin.json") || !checkCreds("servers.json") {
+                        fmt.Fprintf(os.Stderr, "Run init first.\n")
+                        os.Exit(1)
+                    }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
                         // Register can only run after admin is authenticated

@@ -5,7 +5,9 @@ import (
     "SimplePAM/crypto"
     "SimplePAM/parser"
     "fmt"
-    "os/exec"
+    "golang.org/x/crypto/ssh"
+    "os"
+    "golang.org/x/term"
     tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -21,6 +23,63 @@ type TUI struct {
     Allowed  []string
     ErrorMessage string
     Key []byte
+    // use model in memory, gives nil value as well
+    Target *models.Server
+}
+
+func internalSSH(username string, password string, ip string) error {
+    config := &ssh.ClientConfig {
+        User: username,
+        Auth: []ssh.AuthMethod {
+            ssh.Password(password),
+        },
+        HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+    }
+
+    client, err := ssh.Dial("tcp", ip+":22", config)
+    if err != nil {
+        return fmt.Errorf("failed to dial: %w", err)
+    }
+    defer client.Close()
+
+    session, err := client.NewSession()
+    if err != nil {
+        return fmt.Errorf("Failed to create session: ", err)
+    }
+    defer session.Close()
+
+    // looks and interactive 
+    fd := int(os.Stdin.Fd())
+    state, err := term.MakeRaw(fd)
+    if err != nil {
+        return fmt.Errorf("failed to set raw mode: %w", err)
+    }
+    defer term.Restore(fd,state)
+
+    w, h, err := term.GetSize(fd)
+    if err != nil {
+        return fmt.Errorf("failed to get term size: %w", err)
+    }
+
+    modes := ssh.TerminalModes {
+        ssh.ECHO: 1,
+        ssh.TTY_OP_ISPEED: 14400,
+        ssh.TTY_OP_OSPEED: 14400,
+    }
+
+    if err := session.RequestPty("xterm-256color", h, w, modes); err != nil {
+        return fmt.Errorf("request pty failed: %w", err)
+    }
+
+    session.Stdout = os.Stdout
+    session.Stderr = os.Stderr
+    session.Stdin = os.Stdin
+
+    if err := session.Shell(); err != nil {
+        return fmt.Errorf("failed to start shell: %w", err)
+    }
+
+    return session.Wait()
 }
 
 func allowed(username string) ([]string, error) {
@@ -107,16 +166,8 @@ func (t TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                     t.ErrorMessage = ""
                     for _, sl := range t.Server_List {
                         if sl.Server == server_name {
-                            login := sl.Name + "@" + sl.IP
-                            password,err := crypto.Decrypt(sl.Password, t.Key)
-                            if err != nil {
-                                t.ErrorMessage = fmt.Sprintf("Cannot decrypt password: %v", err)
-                                return t, nil
-                            }
-                            cmd := exec.Command("sshpass", "-p", string(password), "ssh", login)
-                            return t, tea.ExecProcess(cmd, func(err error) tea.Msg {
-                                return sshFinishedMsg{err: err}
-                            })
+                            t.Target = &sl
+                            return t, tea.Quit
                         }
                     }
                 }
@@ -161,22 +212,50 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(key []byte, username string) error{
-    if len(key) > 0 {
-        servers_list, err := parseServers()
-        if err != nil {
-            return err
-        }
+func SSH(key []byte, username string) error {
+    if len(key) == 0 {
+        return fmt.Errorf("\nYou are not logged in. Try again.")
+    }
+    servers_list, err := parseServers()
+    if err != nil {
+        return err
+    }
+
+    // loop, load up TUI, wait for either "q" or server selection, then quit or ssh in. if ssh in loop back to TUI after.
+    for {
         model, err := initialModel(username, key, servers_list)
         if err != nil {
             return fmt.Errorf("init failed: %w", err)
         }
         p := tea.NewProgram(model)
-        if _, err := p.Run(); err != nil {
+
+        t, err := p.Run()
+        if err != nil {
             return fmt.Errorf("TUI failed: %w", err)
         }
-    } else {
-        return fmt.Errorf("\nYou are not logged in. Try again.")
+
+        final_t, ok := t.(TUI)
+        if !ok {
+            return fmt.Errorf("internal model error")
+        }
+
+        if final_t.Target == nil {
+            return nil
+        }
+
+        target := *final_t.Target
+        password, err := crypto.Decrypt(target.Password, key)
+        if err != nil {
+            fmt.Printf("Cannot decrypt password: %v", err)
+            continue
+        }
+
+        err = internalSSH(target.Name, string(password), target.IP)
+
+        if err != nil {
+            fmt.Printf("SSH connection error: %v", err)
+        }
     }
+   
     return nil
 }
