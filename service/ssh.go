@@ -45,7 +45,7 @@ func internalSSH(username string, password string, ip string) error {
 
     session, err := client.NewSession()
     if err != nil {
-        return fmt.Errorf("Failed to create session: ", err)
+        return fmt.Errorf("Failed to create session: %w", err)
     }
     defer session.Close()
 
@@ -83,11 +83,13 @@ func internalSSH(username string, password string, ip string) error {
     return session.Wait()
 }
 
-func allowed(db *gorm.DB, username string) []string {
+func allowed(db *gorm.DB, username string) ([]string, error) {
     var users []models.User
     var all []string
-    db.Preload("Servers").Where("username = ?", username).First(&users)
-    
+    result := db.Preload("Servers").Where("username = ?", username).First(&users)
+    if result.Error != nil {
+        return nil, result.Error
+    }
     for _,u := range users {
         if u.Username == username {
             for _,s := range u.Servers {
@@ -95,25 +97,25 @@ func allowed(db *gorm.DB, username string) []string {
             }
         }
     }
-    return all
+    return all, nil
     //return nil, fmt.Errorf("User not found")
 }
 
-func parseServers(db *gorm.DB) []models.Server {
+func parseServers(db *gorm.DB) ([]models.Server,error) {
     var servers []models.Server
-    db.Find(&servers)
+    result := db.Find(&servers)
+    if result.Error != nil {
+        return nil, result.Error
+    }
     
-    /*if *server == 0 {
-        return nil, fmt.Errorf("Invalid servers.json format")
-    }*/
-    return servers
+    return servers, nil
 }
 
 func initialModel(db *gorm.DB, username string, key []byte, server_list []models.Server) (TUI,error) {
-    allowed_servers := allowed(db, username)
-    /*if err != nil {
+    allowed_servers, err := allowed(db, username)
+    if err != nil {
         return TUI{}, err
-    }*/
+    }
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
@@ -210,11 +212,11 @@ func SSH(db *gorm.DB, key []byte, username string) error {
     if len(key) == 0 {
         return fmt.Errorf("\nYou are not logged in. Try again.")
     }
-    servers_list := parseServers(db)
+    servers_list,err := parseServers(db)
     
-    /*if err != nil {
-        return err
-    }*/
+    if err != nil {
+        return fmt.Errorf("Failed to parse servers")
+    }
 
     // loop, load up TUI, wait for either "q" or server selection, then quit or ssh in. if ssh in loop back to TUI after.
     for {
@@ -241,14 +243,14 @@ func SSH(db *gorm.DB, key []byte, username string) error {
         target := *final_t.Target
         password, err := crypto.Decrypt(target.Password, key)
         if err != nil {
-            fmt.Printf("Cannot decrypt password: %v", err)
+            fmt.Errorf("Cannot decrypt password: %w", err)
             continue
         }
 
         err = internalSSH(target.Name, string(password), target.IP)
 
         if err != nil {
-            fmt.Printf("SSH connection error: %v", err)
+            fmt.Errorf("SSH connection error: %w", err)
         }
     }
    

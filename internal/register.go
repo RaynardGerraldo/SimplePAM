@@ -39,10 +39,16 @@ func Register(db *gorm.DB, username string, DEK []byte) error {
     user.Hashed = hashed
     user.Salt = salt
     user.Master_Key = master_key
-    server := parser.CheckDB(db, "server-prod")
-    user.Servers = append(user.Servers, &server)
+    server, err := parser.CheckDB(db, "server-prod")
+    if err != nil {
+        return fmt.Errorf("server-prod not found: %w", err)
+    }
+    user.Servers = append(user.Servers, server)
 
-    parser.WriteDB(db, user)
+    err = parser.WriteDB(db, user)
+    if err != nil {
+        return fmt.Errorf("Write failed: %w", err)
+    }
 
     return nil
 }

@@ -28,12 +28,12 @@ func Cli() {
                 }
                 db,err := parser.OpenCon()
                 if err != nil {
-                    fmt.Println("Failed to open connection to db: %w", err)
+                    fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
                     os.Exit(1)
                 }
                 _, err = parser.ReadUsernameDB(db, username)
                 if err != nil {
-                    fmt.Println("No users exist, run add-user.")
+                    fmt.Println("User doesnt exist.")
                     os.Exit(1)
                 }
                 _, _, err = internal.Auth(db, username)
@@ -52,7 +52,7 @@ func Cli() {
                 if admin_option == "init" {
                     db,err := parser.OpenCon()
                     if err != nil {
-                        fmt.Println("Failed to open connection to db: %w", err)
+                        fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
                         os.Exit(1)
                     }
                     _, err = parser.ReadUsernameDB(db, arg1)
@@ -76,7 +76,7 @@ func Cli() {
                         db,err := parser.OpenCon()
                         DEK, valid, err := internal.Auth(db, arg1)
                         if err != nil {
-                            fmt.Println("Failed to open connection to db: %w", err)
+                            fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
                             os.Exit(1)
                         }
                         if err != nil {
