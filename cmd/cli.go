@@ -1,10 +1,14 @@
 package cmd
 
 import (
-    "fmt"
+    "bytes"
+    "encoding/json"
+    "net/http"
+    "io/ioutil"
     "SimplePAM/internal"
     "SimplePAM/parser"
     "os"
+    "fmt"
 )
 
 func checkCreds(filename string) bool {
@@ -14,6 +18,53 @@ func checkCreds(filename string) bool {
     }
     return !info.IsDir()
 }
+
+type LoginResp struct {
+    Token string `json:"token"`
+    Error string `json:"error"`
+}
+
+func LoginCall(username string) ([]byte, error){
+    password, err := parser.Prompt(username)
+    if err != nil {
+        return nil, err
+    }
+
+    values := map[string]string{
+        "username": username,
+        "password": string(password),
+    }
+    jsondata, err := json.Marshal(values)
+
+    if err != nil {
+        return nil, err
+    }
+
+    resp, err := http.Post("http://localhost:8080/login", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return nil, fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := ioutil.ReadAll(resp.Body)
+
+    if resp.StatusCode != 200 {
+        return nil, fmt.Errorf("access denied: %s", body)
+    }
+
+    var result LoginResp
+    err = json.Unmarshal(body, &result)
+    if err != nil {
+        return nil, fmt.Errorf("bad response: %w", err)
+    }
+
+    return []byte(result.Token), nil
+}
+
+
+// todo
+//func RegisterCall()
+//func InitCall()
 
 func Cli() {
     username := ""
@@ -25,7 +76,9 @@ func Cli() {
                 username = os.Args[2]
                 if len(username) == 0 {
                     fmt.Println("No username given, try again.")
+                    os.Exit(1)
                 }
+                // replace here with api call?
                 db,err := parser.OpenCon()
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
@@ -50,6 +103,7 @@ func Cli() {
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
                 if admin_option == "init" {
+                    // replace here with api call?
                     db,err := parser.OpenCon()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
@@ -72,18 +126,15 @@ func Cli() {
                     }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
-                        // Register can only run after admin is authenticated
-                        db,err := parser.OpenCon()
-                        DEK, valid, err := internal.Auth(db, arg1)
+                        // replace here with api call?
+                        token, err := LoginCall(arg1)
                         if err != nil {
-                            fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
+                            fmt.Println("whoopsie: %s", err)
                             os.Exit(1)
                         }
-                        if err != nil {
-                            fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
-                            os.Exit(1)
-                        }
-                        if valid {
+                        fmt.Println(token)
+                        os.Exit(1)
+                        /*if token {
                             err := internal.Register(db, username, DEK)
                             if err != nil {
                                 fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
@@ -92,7 +143,7 @@ func Cli() {
                             fmt.Println("\nadding user:", username)
                         } else {
                             fmt.Println("Not authorized")
-                        }
+                        }*/
                     } else {
                         fmt.Println("Specify user for add-user.")
                     }
