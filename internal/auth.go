@@ -1,10 +1,8 @@
 package internal
 
 import (
-    //"SimplePAM/service"
     "SimplePAM/crypto"
     "SimplePAM/models"
-    "SimplePAM/parser"
     "golang.org/x/crypto/bcrypt"
     "golang.org/x/crypto/scrypt"
     "gorm.io/gorm"
@@ -16,7 +14,6 @@ func CheckHash(hash []byte, password []byte) bool{
     return valid == nil
 }
 
-// todo, return token and not direct ssh
 func ReadCred(db *gorm.DB, username string, password []byte) ([]byte, bool, error){
     var user models.User
     err := db.Where("username = ?", username).First(&user).Error
@@ -40,21 +37,6 @@ func ReadCred(db *gorm.DB, username string, password []byte) ([]byte, bool, erro
         }
         
         return DEK, true, nil
-
-        /*if username == "admin" {
-            return DEK, true, nil
-        } else {
-            return nil, false, service.SSH(db, DEK, username)
-        }*/
     }
     return nil, false, fmt.Errorf("Wrong credentials, try again.")
-}
-
-// obsolete
-func Auth(db *gorm.DB, username string) ([]byte, bool, error){
-    password,err := parser.Prompt(username)
-    if err != nil {
-        return nil, false, err
-    }
-    return ReadCred(db, username, password)
 }

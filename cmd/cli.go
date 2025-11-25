@@ -29,6 +29,46 @@ type RegResp struct {
     Error string `json:"error"`
 }
 
+type StatusResp struct {
+    Error string `json:"error"`
+}
+
+func StatusCall(username string) error {
+    values := map[string]string{
+        "username": username,
+    }
+    jsondata, err := json.Marshal(values)
+
+    if err != nil {
+        return err
+    }
+
+    resp, err := http.Post("http://localhost:8080/status", "application/json", bytes.NewBuffer(jsondata))
+
+    if err != nil {
+        return fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := ioutil.ReadAll(resp.Body)
+
+    if resp.StatusCode != 200 {
+        return fmt.Errorf("access denied: %s", string(body))
+    }
+
+    var result StatusResp
+    err = json.Unmarshal(body, &result)
+    if err != nil {
+        return fmt.Errorf("cannot unmarshal: %w", err)
+    }
+
+    if result.Error != "" {
+        return fmt.Errorf("bad response: %v", result.Error)
+    }
+    return nil
+}
+
+
 func LoginCall(username string) (string, error){
     password, err := parser.Prompt(username)
     if err != nil {
@@ -217,17 +257,17 @@ func Cli() {
                     fmt.Println("No username given, try again.")
                     os.Exit(1)
                 }
-                // replace here with api call?
                 db,err := parser.OpenCon()
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
                     os.Exit(1)
                 }
-                _, err = parser.ReadUsernameDB(db, username)
+                err = StatusCall(username)
                 if err != nil {
-                    fmt.Println("User doesnt exist.")
+                    fmt.Fprintf(os.Stderr, "%v\n", err)
                     os.Exit(1)
                 }
+
                 token, err := LoginCall(username)
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "SSH Failed: %v\n", err)
@@ -243,19 +283,11 @@ func Cli() {
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
                 if admin_option == "init" {
-                    // replace here with api call?
-                    db,err := parser.OpenCon()
+                    err := StatusCall(arg1)
                     if err != nil {
-                        fmt.Fprintf(os.Stderr, "Failed to open connection to db: %v\n", err)
+                        fmt.Fprintf(os.Stderr, "%v\n", err)
                         os.Exit(1)
                     }
-                    _, err = parser.ReadUsernameDB(db, arg1)
-                    if err == nil {
-                        fmt.Println("Cant run init, admin already exists")
-                        os.Exit(1)
-                    }
-
-                    // replace with InitCall
                     key, err := AdminCall()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
@@ -267,17 +299,22 @@ func Cli() {
                         os.Exit(1)
                     }
                     fmt.Println(success)
-
                 } else if admin_option == "add-user" {
-                    if !checkCreds("pam.db") {
+                    err := StatusCall(arg1)
+                    if err == nil {
                         fmt.Fprintf(os.Stderr, "Run init first.\n")
                         os.Exit(1)
                     }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
+                        err := StatusCall(username)
+                        if err == nil {
+                            fmt.Fprintf(os.Stderr, "User already exists\n")
+                            os.Exit(1)
+                        }
                         token, err := LoginCall(arg1)
                         if err != nil {
-                            fmt.Println("whoopsie: %s", err)
+                            fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
                             os.Exit(1)
                         }
                         success, err := RegisterCall(username, token)

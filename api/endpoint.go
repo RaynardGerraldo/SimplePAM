@@ -2,6 +2,7 @@ package main
 
 import (
     "SimplePAM/internal"
+    "SimplePAM/parser"
     "github.com/gin-gonic/gin"
     "encoding/base64"
     "gorm.io/gorm"
@@ -25,12 +26,21 @@ type ServerReq struct {
     Key string `json:"key"`
 }
 
+type StatusReq struct {
+    Username string `json:"username"`
+}
+
 func Login(c *gin.Context, db *gorm.DB) {
     var loginreq LoginReq
 
     err := c.BindJSON(&loginreq)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+        return
+    }
+    _, err = parser.ReadUsernameDB(db, loginreq.Username)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "User doesnt exist."})
         return
     }
 
@@ -107,4 +117,28 @@ func InitServer(c *gin.Context, db *gorm.DB) {
         return
     }
     c.JSON(http.StatusOK, gin.H{"success": "Server initialized."})
+}
+
+func Status(c *gin.Context, db *gorm.DB) {
+    var status StatusReq
+    err := c.BindJSON(&status)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+        return
+    }
+    _, err = parser.ReadUsernameDB(db, status.Username)
+   
+    if status.Username == "admin" {
+        if err == nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Cant run init, admin already exists"})
+            return 
+        }
+    } else {
+        if err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "User doesnt exist."})
+            return
+        }
+    }
+    c.JSON(http.StatusOK, gin.H{"error": ""})
+    return
 }

@@ -98,7 +98,6 @@ func allowed(db *gorm.DB, username string) ([]string, error) {
         }
     }
     return all, nil
-    //return nil, fmt.Errorf("User not found")
 }
 
 func parseServers(db *gorm.DB) ([]models.Server,error) {
