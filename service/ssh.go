@@ -3,7 +3,7 @@ package service
 import (
     "SimplePAM/models"
     "SimplePAM/crypto"
-    //"SimplePAM/parser"
+    "encoding/base64"
     "gorm.io/gorm"
     "fmt"
     "golang.org/x/crypto/ssh"
@@ -208,10 +208,16 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(db *gorm.DB, key []byte, username string) error {
+func SSH(db *gorm.DB, key string, username string) error {
     if len(key) == 0 {
         return fmt.Errorf("\nYou are not logged in. Try again.")
     }
+
+    decodedKey, err := base64.StdEncoding.DecodeString(key)
+    if err != nil {
+        return fmt.Errorf("Couldnt decode base64")
+    }
+
     servers_list,err := parseServers(db)
     
     if err != nil {
@@ -220,7 +226,7 @@ func SSH(db *gorm.DB, key []byte, username string) error {
 
     // loop, load up TUI, wait for either "q" or server selection, then quit or ssh in. if ssh in loop back to TUI after.
     for {
-        model, err := initialModel(db, username, key, servers_list)
+        model, err := initialModel(db, username, decodedKey, servers_list)
         if err != nil {
             return fmt.Errorf("init failed: %w", err)
         }
@@ -241,7 +247,7 @@ func SSH(db *gorm.DB, key []byte, username string) error {
         }
 
         target := *final_t.Target
-        password, err := crypto.Decrypt(target.Password, key)
+        password, err := crypto.Decrypt(target.Password, decodedKey)
         if err != nil {
             fmt.Errorf("Cannot decrypt password: %w", err)
             continue

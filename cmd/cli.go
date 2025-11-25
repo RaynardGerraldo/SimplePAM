@@ -5,7 +5,6 @@ import (
     "encoding/json"
     "net/http"
     "io/ioutil"
-    "SimplePAM/internal"
     "SimplePAM/parser"
     "SimplePAM/service"
     "os"
@@ -30,10 +29,10 @@ type RegResp struct {
     Error string `json:"error"`
 }
 
-func LoginCall(username string) ([]byte, error){
+func LoginCall(username string) (string, error){
     password, err := parser.Prompt(username)
     if err != nil {
-        return nil, err
+        return "", err
     }
 
     values := map[string]string{
@@ -43,36 +42,36 @@ func LoginCall(username string) ([]byte, error){
     jsondata, err := json.Marshal(values)
 
     if err != nil {
-        return nil, err
+        return "", err
     }
 
     resp, err := http.Post("http://localhost:8080/login", "application/json", bytes.NewBuffer(jsondata))
     if err != nil {
-        return nil, fmt.Errorf("failed to connect to PAM server: %w", err)
+        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
 
     body, _ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
-        return nil, fmt.Errorf("access denied: %s", string(body))
+        return "", fmt.Errorf("access denied: %s", string(body))
     }
 
     var result LoginResp
     err = json.Unmarshal(body, &result)
     if err != nil {
-        return nil, fmt.Errorf("cannot unmarshal: %w", err)
+        return "", fmt.Errorf("cannot unmarshal: %w", err)
     }
 
     if result.Error != "" {
-        return nil, fmt.Errorf("bad response: %v", result.Error)
+        return "", fmt.Errorf("bad response: %v", result.Error)
     }
-    return []byte(result.Token), nil
+    return result.Token, nil
 }
 
 
 // todo
-func RegisterCall(username string, key []byte) (string, error) {
+func RegisterCall(username string, key string) (string, error) {
     password,err := parser.Prompt(username)
     if err != nil {
         return "", err
@@ -81,7 +80,7 @@ func RegisterCall(username string, key []byte) (string, error) {
     values := map[string]string{
         "username": username,
         "password": string(password),
-        "key": string(key),
+        "key": key,
     }
 
     jsondata, err := json.Marshal(values)
@@ -115,7 +114,96 @@ func RegisterCall(username string, key []byte) (string, error) {
     return result.Success, nil
 }
 
-//func InitCall()
+func AdminCall() (string, error){
+    fmt.Println("Your admin username is 'admin' by default")
+    username := "admin"
+    password, err := parser.Prompt(username)
+    if err != nil {
+        return "", err
+    }
+
+    values := map[string]string{
+        "username": username,
+        "password": string(password),
+    }
+
+    jsondata, err := json.Marshal(values)
+
+    if err != nil {
+        return "", err
+    }
+
+    resp, err := http.Post("http://localhost:8080/initadmin", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := ioutil.ReadAll(resp.Body)
+
+    if resp.StatusCode != 200 {
+        return "", fmt.Errorf("%s\n", string(body))
+    }
+
+    var result LoginResp
+    err = json.Unmarshal(body, &result)
+    if err != nil {
+        return "", fmt.Errorf("cannot unmarshal: %w", err)
+    }
+
+    if result.Error != "" {
+        return "", fmt.Errorf("bad response: %w", result.Error)
+    }
+
+    return result.Token, nil
+}
+
+func ServerCall(key string) (string, error) {
+    var name string
+    fmt.Println("\nTry it out with your localhost")
+    fmt.Printf("Server username? ")
+    fmt.Scan(&name)
+
+    password,err := parser.Prompt("server " + name)
+    if err != nil {
+        return "", err
+    }
+    
+    values := map[string]string{
+        "username": name,
+        "password": string(password),
+        "key": key,
+    }
+
+    jsondata, err := json.Marshal(values)
+
+    if err != nil {
+        return "", err
+    }
+
+    resp, err := http.Post("http://localhost:8080/initserver", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()
+
+    body,_ := ioutil.ReadAll(resp.Body)
+
+    if resp.StatusCode != 200 {
+        return "", fmt.Errorf("%s\n", string(body))
+    }
+    
+    var result RegResp
+    err = json.Unmarshal(body, &result)
+    if err != nil {
+        return "", fmt.Errorf("Cannot unmarshal: %w", err)
+    }
+
+    if result.Error != "" {
+        return "", fmt.Errorf("bad response: %w", result.Error)
+    }
+    return result.Success, nil
+}
 
 func Cli() {
     username := ""
@@ -168,11 +256,18 @@ func Cli() {
                     }
 
                     // replace with InitCall
-                    err = internal.Init(db)
+                    key, err := AdminCall()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
+                    success, err := ServerCall(key)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
+                        os.Exit(1)
+                    }
+                    fmt.Println(success)
+
                 } else if admin_option == "add-user" {
                     if !checkCreds("pam.db") {
                         fmt.Fprintf(os.Stderr, "Run init first.\n")

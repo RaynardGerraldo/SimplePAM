@@ -23,6 +23,14 @@ func main() {
     r.POST("/register", func(c *gin.Context) {
         Register(c, db)
     })
+    
+    r.POST("/initadmin", func(c *gin.Context) {
+        InitAdmin(c, db)
+    })
+
+    r.POST("/initserver", func(c *gin.Context) {
+        InitServer(c, db)
+    })
 
     fmt.Println("PAM Server is running on localhost:8080...")
     r.Run(":8080") 
