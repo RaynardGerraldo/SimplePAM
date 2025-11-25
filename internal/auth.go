@@ -1,7 +1,7 @@
 package internal
 
 import (
-    "SimplePAM/service"
+    //"SimplePAM/service"
     "SimplePAM/crypto"
     "SimplePAM/models"
     "SimplePAM/parser"
@@ -38,12 +38,14 @@ func ReadCred(db *gorm.DB, username string, password []byte) ([]byte, bool, erro
         if err != nil {
             return nil, false, err
         }
+        
+        return DEK, true, nil
 
-        if username == "admin" {
+        /*if username == "admin" {
             return DEK, true, nil
         } else {
             return nil, false, service.SSH(db, DEK, username)
-        }
+        }*/
     }
     return nil, false, fmt.Errorf("Wrong credentials, try again.")
 }

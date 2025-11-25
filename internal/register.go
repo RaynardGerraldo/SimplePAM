@@ -8,7 +8,7 @@ import (
     "fmt"
 )
 
-func Register(db *gorm.DB, username string, DEK []byte) error {
+func Register(db *gorm.DB, username string, password []byte, DEK []byte) error {
     // check for dupe usernames
     dupe, err := parser.ReadUsernameDB(db, username)
     if err == nil {
@@ -25,10 +25,6 @@ func Register(db *gorm.DB, username string, DEK []byte) error {
 
     var user models.User
     user.Username = username
-    password,err := parser.Prompt(username)
-    if err != nil {
-        return err
-    }
 
     hashed, salt, master_key, error_msg := crypto.AddUser(password,DEK)
     if error_msg != nil {

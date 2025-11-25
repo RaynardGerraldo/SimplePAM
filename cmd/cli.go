@@ -7,6 +7,7 @@ import (
     "io/ioutil"
     "SimplePAM/internal"
     "SimplePAM/parser"
+    "SimplePAM/service"
     "os"
     "fmt"
 )
@@ -21,6 +22,11 @@ func checkCreds(filename string) bool {
 
 type LoginResp struct {
     Token string `json:"token"`
+    Error string `json:"error"`
+}
+
+type RegResp struct {
+    Success string `json:"success"`
     Error string `json:"error"`
 }
 
@@ -49,21 +55,66 @@ func LoginCall(username string) ([]byte, error){
     body, _ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
-        return nil, fmt.Errorf("access denied: %s", body)
+        return nil, fmt.Errorf("access denied: %s", string(body))
     }
 
     var result LoginResp
     err = json.Unmarshal(body, &result)
     if err != nil {
-        return nil, fmt.Errorf("bad response: %w", err)
+        return nil, fmt.Errorf("cannot unmarshal: %w", err)
     }
 
+    if result.Error != "" {
+        return nil, fmt.Errorf("bad response: %v", result.Error)
+    }
     return []byte(result.Token), nil
 }
 
 
 // todo
-//func RegisterCall()
+func RegisterCall(username string, key []byte) (string, error) {
+    password,err := parser.Prompt(username)
+    if err != nil {
+        return "", err
+    }
+
+    values := map[string]string{
+        "username": username,
+        "password": string(password),
+        "key": string(key),
+    }
+
+    jsondata, err := json.Marshal(values)
+
+    if err != nil {
+        return "", err
+    }
+
+    resp, err := http.Post("http://localhost:8080/register", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := ioutil.ReadAll(resp.Body)
+
+    if resp.StatusCode != 200 {
+        return "", fmt.Errorf("%s\n", string(body))
+    }
+
+    var result RegResp
+    err = json.Unmarshal(body, &result)
+    if err != nil {
+        return "", fmt.Errorf("cannot unmarshal: %w", err)
+    }
+
+    if result.Error != "" {
+        return "", fmt.Errorf("bad response: %v", result.Error)
+    }
+
+    return result.Success, nil
+}
+
 //func InitCall()
 
 func Cli() {
@@ -89,11 +140,12 @@ func Cli() {
                     fmt.Println("User doesnt exist.")
                     os.Exit(1)
                 }
-                _, _, err = internal.Auth(db, username)
+                token, err := LoginCall(username)
                 if err != nil {
-                    fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
+                    fmt.Fprintf(os.Stderr, "SSH Failed: %v\n", err)
                     os.Exit(1)
                 }
+                service.SSH(db, token, username)
            } else {
                 fmt.Println("Not enough arguments, try again.")
            } 
@@ -114,6 +166,8 @@ func Cli() {
                         fmt.Println("Cant run init, admin already exists")
                         os.Exit(1)
                     }
+
+                    // replace with InitCall
                     err = internal.Init(db)
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
@@ -126,24 +180,17 @@ func Cli() {
                     }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
-                        // replace here with api call?
                         token, err := LoginCall(arg1)
                         if err != nil {
                             fmt.Println("whoopsie: %s", err)
                             os.Exit(1)
                         }
-                        fmt.Println(token)
-                        os.Exit(1)
-                        /*if token {
-                            err := internal.Register(db, username, DEK)
-                            if err != nil {
-                                fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
-                                os.Exit(1)
-                            }
-                            fmt.Println("\nadding user:", username)
-                        } else {
-                            fmt.Println("Not authorized")
-                        }*/
+                        success, err := RegisterCall(username, token)
+                        if err != nil {
+                            fmt.Fprintf(os.Stderr, "Failed to register: %v", err)
+                            os.Exit(1)
+                        }
+                        fmt.Println(success)
                     } else {
                         fmt.Println("Specify user for add-user.")
                     }
