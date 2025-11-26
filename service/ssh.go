@@ -4,7 +4,6 @@ import (
     "SimplePAM/models"
     "SimplePAM/crypto"
     "encoding/base64"
-    "gorm.io/gorm"
     "fmt"
     "golang.org/x/crypto/ssh"
     "os"
@@ -83,43 +82,12 @@ func internalSSH(username string, password string, ip string) error {
     return session.Wait()
 }
 
-func allowed(db *gorm.DB, username string) ([]string, error) {
-    var users []models.User
-    var all []string
-    result := db.Preload("Servers").Where("username = ?", username).First(&users)
-    if result.Error != nil {
-        return nil, result.Error
-    }
-    for _,u := range users {
-        if u.Username == username {
-            for _,s := range u.Servers {
-                all = append(all, s.Server)
-            }
-        }
-    }
-    return all, nil
-}
-
-func parseServers(db *gorm.DB) ([]models.Server,error) {
-    var servers []models.Server
-    result := db.Find(&servers)
-    if result.Error != nil {
-        return nil, result.Error
-    }
-    
-    return servers, nil
-}
-
-func initialModel(db *gorm.DB, username string, key []byte, server_list []models.Server) (TUI,error) {
-    allowed_servers, err := allowed(db, username)
-    if err != nil {
-        return TUI{}, err
-    }
+func initialModel(username string, key []byte, server_list []models.Server, allowed []string) (TUI,error) {
     return TUI{
         Choices: []string{"server-prod", "server-test", "server-misc"},
         Selected: make(map[int]struct{}),
         Server_List: server_list,
-        Allowed: allowed_servers,
+        Allowed: allowed,
         Key: key,
     }, nil
 }
@@ -207,7 +175,7 @@ func (t TUI) View() string {
     return s
 }
 
-func SSH(db *gorm.DB, key string, username string) error {
+func SSH(key string, username string, allowed []string, servers_list []models.Server) error {
     if len(key) == 0 {
         return fmt.Errorf("\nYou are not logged in. Try again.")
     }
@@ -217,15 +185,9 @@ func SSH(db *gorm.DB, key string, username string) error {
         return fmt.Errorf("Couldnt decode base64")
     }
 
-    servers_list,err := parseServers(db)
-    
-    if err != nil {
-        return fmt.Errorf("Failed to parse servers")
-    }
-
     // loop, load up TUI, wait for either "q" or server selection, then quit or ssh in. if ssh in loop back to TUI after.
     for {
-        model, err := initialModel(db, username, decodedKey, servers_list)
+        model, err := initialModel(username, decodedKey, servers_list, allowed)
         if err != nil {
             return fmt.Errorf("init failed: %w", err)
         }

@@ -104,6 +104,7 @@ func InitServer(c *gin.Context, db *gorm.DB) {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
         return
     }
+    
     decodedKey, err := base64.StdEncoding.DecodeString(serverreq.Key)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid key format"})
@@ -141,4 +142,30 @@ func Status(c *gin.Context, db *gorm.DB) {
     }
     c.JSON(http.StatusOK, gin.H{"error": ""})
     return
+}
+
+func AllowedServers(c *gin.Context, db *gorm.DB) {
+    var allowed_username StatusReq
+    err := c.BindJSON(&allowed_username)
+
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+        return
+    }
+
+    allowed, err := internal.Allowed(db, allowed_username.Username)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Failed to get allowed servers: %v", err)})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"allowed": allowed})
+}
+
+func ServersList(c *gin.Context, db *gorm.DB) {
+    list, err := internal.ServersList(db)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Failed to get server list: %v", err)})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"list": list})   
 }

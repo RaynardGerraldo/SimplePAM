@@ -36,7 +36,14 @@ func main() {
         Status(c, db)
     })
 
+    r.POST("/allowedservers", func(c *gin.Context) {
+        AllowedServers(c, db)
+    })
 
+    r.GET("/serverslist", func(c *gin.Context) {
+        ServersList(c, db)
+    })
+   
     fmt.Println("PAM Server is running on localhost:8080...")
     r.Run(":8080") 
 }
