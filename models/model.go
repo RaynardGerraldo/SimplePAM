@@ -1,16 +1,21 @@
 package models
 
+import "gorm.io/gorm"
+
 type User struct {
-    Username string `json:"username"`
-    Hashed []byte `json:"hashed"`
-    Salt []byte `json:"salt"`
-    Master_Key []byte `json:"master_key"`
-    Servers []string `json:"servers"`
+    gorm.Model 
+    Username   string    `gorm:"uniqueIndex;not null" json:"username"`
+    Hashed     []byte    `gorm:"not null" json:"hashed"`
+    Salt       []byte    `gorm:"not null" json:"salt"`
+    Master_Key []byte    `gorm:"not null" json:"master_key"`
+    // third table many2many
+    Servers    []*Server `gorm:"many2many:user_servers;" json:"servers"`
 }
 
 type Server struct {
-    Server string `json:"server"`
-    Name string `json:"name"`
-    IP string `json:"ip"`
-    Password []byte `json:"password"`
+    gorm.Model
+    Server   string `gorm:"uniqueIndex;not null" json:"server"`
+    Name     string `gorm:"not null" json:"name"`
+    IP       string `gorm:"not null" json:"ip"`
+    Password []byte `gorm:"not null" json:"password"`
 }

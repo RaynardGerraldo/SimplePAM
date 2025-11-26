@@ -1,9 +1,10 @@
 package cmd
 
 import (
-    "fmt"
+    "SimplePAM/service"
     "SimplePAM/internal"
     "os"
+    "fmt"
 )
 
 func checkCreds(filename string) bool {
@@ -13,6 +14,7 @@ func checkCreds(filename string) bool {
     }
     return !info.IsDir()
 }
+
 
 func Cli() {
     username := ""
@@ -24,16 +26,25 @@ func Cli() {
                 username = os.Args[2]
                 if len(username) == 0 {
                     fmt.Println("No username given, try again.")
-                }
-                if !checkCreds("users.json") {
-                    fmt.Println("No users exist, run add-user.")
                     os.Exit(1)
                 }
-                _, _, err := internal.Auth(username)
+                err := internal.StatusCall(username)
                 if err != nil {
-                    fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
+                    fmt.Fprintf(os.Stderr, "%v\n", err)
                     os.Exit(1)
                 }
+
+                token, err := internal.LoginCall(username)
+                if err != nil {
+                    fmt.Fprintf(os.Stderr, "SSH Failed: %v\n", err)
+                    os.Exit(1)
+                }
+                allowed_servers, servers_list, err := internal.AllowedListCall(username)
+                if err != nil {
+                    fmt.Fprintf(os.Stderr, "Failed to get allowed servers and servers list: %v\n", err)
+                    os.Exit(1)
+                }
+                service.SSH(token, username, allowed_servers, servers_list)
            } else {
                 fmt.Println("Not enough arguments, try again.")
            } 
@@ -43,35 +54,46 @@ func Cli() {
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
                 if admin_option == "init" {
-                    if checkCreds("admin.json") {
-                        fmt.Println("Cant run init, admin already exists")
+                    err := internal.StatusCall(arg1)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "%v\n", err)
                         os.Exit(1)
                     }
-                    err := internal.Init()
+                    key, err := internal.AdminCall()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
+                    success, err := internal.ServerCall(key)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
+                        os.Exit(1)
+                    }
+                    fmt.Println(success)
                 } else if admin_option == "add-user" {
+                    err := internal.StatusCall(arg1)
+                    if err == nil {
+                        fmt.Fprintf(os.Stderr, "Run init first.\n")
+                        os.Exit(1)
+                    }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
-                        // Register can only run after admin is authenticated
-                        DEK, valid, err := internal.Auth(arg1)
-
-                        if err != nil {
-                            fmt.Fprintf(os.Stderr, "Error during auth: %v\n", err)
+                        err := internal.StatusCall(username)
+                        if err == nil {
+                            fmt.Fprintf(os.Stderr, "User already exists\n")
                             os.Exit(1)
                         }
-                        if valid {
-                            err := internal.Register(username, DEK, checkCreds("users.json"))
-                            if err != nil {
-                                fmt.Fprintf(os.Stderr, "Error during register: %v\n", err)
-                                os.Exit(1)
-                            }
-                            fmt.Println("\nadding user:", username)
-                        } else {
-                            fmt.Println("Not authorized")
+                        token, err := internal.LoginCall(arg1)
+                        if err != nil {
+                            fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
+                            os.Exit(1)
                         }
+                        success, err := internal.RegisterCall(username, token)
+                        if err != nil {
+                            fmt.Fprintf(os.Stderr, "Failed to register: %v", err)
+                            os.Exit(1)
+                        }
+                        fmt.Println(success)
                     } else {
                         fmt.Println("Specify user for add-user.")
                     }
