@@ -2,17 +2,12 @@
 
 a really basic implementation of a Privileged Access Management 
 
-currently starting "Phase 1" to make it a little more professional: 
-
-- [x] Internal SSH instead of exec
-- [x] JSON to DB
-- [ ] API Endpoints
-
-
 ## Setup
 `git clone https://github.com/RaynardGerraldo/SimplePAM ; cd SimplePAM ; go mod tidy ; go build`
 
 ## Usage
+
+`go run api/main.go api/endpoint.go` -- run this on a seperate terminal
 
 `./SimplePAM admin init` -- initialize admin and server (currently only your localhost)
 
