@@ -14,7 +14,11 @@ func main() {
         os.Exit(1)
     }
 
-    r := gin.Default()
+    r := gin.New()
+
+    r.Use(gin.Recovery())
+
+    r.Use(Audit())
 
     r.POST("/login", func(c *gin.Context) {
         Login(c, db)
