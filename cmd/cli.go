@@ -33,12 +33,12 @@ func Cli() {
                     fmt.Fprintf(os.Stderr, "User doesnt exist.\n")
                     os.Exit(1)
                 }
-                token, err := internal.LoginCall(username)
+                token, jwt, err := internal.LoginCall(username)
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "SSH Failed: %v\n", err)
                     os.Exit(1)
                 }
-                allowed_servers, servers_list, err := internal.AllowedListCall(username)
+                allowed_servers, servers_list, err := internal.AllowedListCall(username, jwt)
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "Failed to get allowed servers and servers list: %v\n", err)
                     os.Exit(1)
@@ -65,12 +65,12 @@ func Cli() {
                         fmt.Fprintf(os.Stderr, "Admin already exists.\n")
                         os.Exit(1)
                     }
-                    key, err := internal.AdminCall()
+                    token, jwt, err := internal.AdminCall()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
-                    success, err := internal.ServerCall(key)
+                    success, err := internal.ServerCall(token, jwt)
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
                         os.Exit(1)
@@ -84,12 +84,12 @@ func Cli() {
                             fmt.Fprintf(os.Stderr, "User already exists\n")
                             os.Exit(1)
                         }
-                        token, err := internal.LoginCall(arg1)
+                        token, jwt, err := internal.LoginCall(arg1)
                         if err != nil {
                             fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
                             os.Exit(1)
                         }
-                        success, err := internal.RegisterCall(username, token)
+                        success, err := internal.RegisterCall(username, token, jwt)
                         if err != nil {
                             fmt.Fprintf(os.Stderr, "Failed to register: %v", err)
                             os.Exit(1)

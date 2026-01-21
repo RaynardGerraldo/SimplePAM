@@ -13,6 +13,7 @@ import (
 
 type LoginResp struct {
     Token string `json:"token"`
+    Jwt   string `json:"jwt"`
     Error string `json:"error"`
 }
 
@@ -67,10 +68,10 @@ func StatusCall(username string) error {
 }
 
 
-func LoginCall(username string) (string, error){
+func LoginCall(username string) (string, string, error){
     password, err := parser.Prompt(username)
     if err != nil {
-        return "", err
+        return "", "", err
     }
 
     values := map[string]string{
@@ -80,34 +81,34 @@ func LoginCall(username string) (string, error){
     jsondata, err := json.Marshal(values)
 
     if err != nil {
-        return "", err
+        return "", "", err
     }
 
     resp, err := http.Post("http://localhost:8080/login", "application/json", bytes.NewBuffer(jsondata))
     if err != nil {
-        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+        return "", "", fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
 
     body, _ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
-        return "", fmt.Errorf("access denied: %s", string(body))
+        return "", "", fmt.Errorf("access denied: %s", string(body))
     }
 
     var result LoginResp
     err = json.Unmarshal(body, &result)
     if err != nil {
-        return "", fmt.Errorf("cannot unmarshal: %w", err)
+        return "", "", fmt.Errorf("cannot unmarshal: %w", err)
     }
 
     if result.Error != "" {
-        return "", fmt.Errorf("bad response: %v", result.Error)
+        return "", "", fmt.Errorf("bad response: %v", result.Error)
     }
-    return result.Token, nil
+    return result.Token, result.Jwt, nil
 }
 
-func RegisterCall(username string, key string) (string, error) {
+func RegisterCall(username string, key string, jwt string) (string, error) {
     password,err := parser.Prompt(username)
     if err != nil {
         return "", err
@@ -125,11 +126,26 @@ func RegisterCall(username string, key string) (string, error) {
         return "", err
     }
 
-    resp, err := http.Post("http://localhost:8080/register", "application/json", bytes.NewBuffer(jsondata))
+    req, err := http.NewRequest("POST", "http://localhost:8080/register", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", err
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer " + jwt)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
     if err != nil {
         return "", fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
+
+    /*resp, err := http.Post("http://localhost:8080/register", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()*/
 
     body, _ := ioutil.ReadAll(resp.Body)
 
@@ -150,12 +166,12 @@ func RegisterCall(username string, key string) (string, error) {
     return result.Success, nil
 }
 
-func AdminCall() (string, error){
+func AdminCall() (string, string, error){
     fmt.Println("Your admin username is 'admin' by default")
     username := "admin"
     password, err := parser.Prompt(username)
     if err != nil {
-        return "", err
+        return "", "", err
     }
 
     values := map[string]string{
@@ -166,35 +182,35 @@ func AdminCall() (string, error){
     jsondata, err := json.Marshal(values)
 
     if err != nil {
-        return "", err
+        return "", "", err
     }
 
     resp, err := http.Post("http://localhost:8080/initadmin", "application/json", bytes.NewBuffer(jsondata))
     if err != nil {
-        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+        return "", "", fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
 
     body, _ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
-        return "", fmt.Errorf("%s\n", string(body))
+        return "", "", fmt.Errorf("%s\n", string(body))
     }
 
     var result LoginResp
     err = json.Unmarshal(body, &result)
     if err != nil {
-        return "", fmt.Errorf("cannot unmarshal: %w", err)
+        return "", "", fmt.Errorf("cannot unmarshal: %w", err)
     }
 
     if result.Error != "" {
-        return "", fmt.Errorf("bad response: %w", result.Error)
+        return "", "", fmt.Errorf("bad response: %w", result.Error)
     }
 
-    return result.Token, nil
+    return result.Token, result.Jwt, nil
 }
 
-func ServerCall(key string) (string, error) {
+func ServerCall(key string, jwt string) (string, error) {
     var name string
     fmt.Println("\nTry it out with your localhost")
     fmt.Printf("Server username? ")
@@ -217,11 +233,26 @@ func ServerCall(key string) (string, error) {
         return "", err
     }
 
-    resp, err := http.Post("http://localhost:8080/initserver", "application/json", bytes.NewBuffer(jsondata))
+    req, err := http.NewRequest("POST", "http://localhost:8080/initserver", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", err
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer " + jwt)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
     if err != nil {
         return "", fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
+
+    /*resp, err := http.Post("http://localhost:8080/initserver", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()*/
 
     body,_ := ioutil.ReadAll(resp.Body)
 
@@ -241,7 +272,7 @@ func ServerCall(key string) (string, error) {
     return result.Success, nil
 }
 
-func AllowedListCall(username string) ([]string, []models.Server, error){
+func AllowedListCall(username string, jwt string) ([]string, []models.Server, error){
     var servers_list []models.Server
     var allowed_servers []string
     values := map[string]string{
@@ -254,11 +285,26 @@ func AllowedListCall(username string) ([]string, []models.Server, error){
         return nil, nil, err
     }
 
-    resp, err := http.Post("http://localhost:8080/allowedservers", "application/json", bytes.NewBuffer(jsondata))
+    req, err := http.NewRequest("POST", "http://localhost:8080/allowedservers", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return nil, nil, err
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer " + jwt)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
     if err != nil {
         return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
+
+    /*resp, err := http.Post("http://localhost:8080/allowedservers", "application/json", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()*/
 
     body,_ := ioutil.ReadAll(resp.Body)
 
@@ -277,12 +323,27 @@ func AllowedListCall(username string) ([]string, []models.Server, error){
     }
     
     allowed_servers = result.Allowed
-    
-    resp, err = http.Get("http://localhost:8080/serverslist")
+   
+    req, err = http.NewRequest("GET", "http://localhost:8080/serverslist", bytes.NewBuffer(jsondata))
+    if err != nil {
+        return nil, nil, err
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer " + jwt)
+
+    client = &http.Client{}
+    resp, err = client.Do(req)
     if err != nil {
         return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
+
+    /*resp, err = http.Get("http://localhost:8080/serverslist")
+    if err != nil {
+        return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()*/
 
     body,_ = ioutil.ReadAll(resp.Body)
 

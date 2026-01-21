@@ -7,6 +7,7 @@ toolchain go1.24.10
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/gin-gonic/gin v1.11.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	golang.org/x/crypto v0.45.0
 	golang.org/x/term v0.37.0
 	gorm.io/driver/sqlite v1.6.0

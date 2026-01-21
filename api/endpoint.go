@@ -3,6 +3,7 @@ package main
 import (
     "SimplePAM/internal"
     "SimplePAM/parser"
+    "SimplePAM/models"
     "github.com/gin-gonic/gin"
     "encoding/base64"
     "gorm.io/gorm"
@@ -50,8 +51,14 @@ func Login(c *gin.Context, db *gorm.DB) {
         return
     }
 
+    jwt, err := GenerateToken(loginreq.Username, "user")
+    if err != nil {
+        c.JSON(500, gin.H{"error": "Could not generate token"})
+        return
+    }
+
     if valid {
-        c.JSON(http.StatusOK, gin.H{"token": base64.StdEncoding.EncodeToString(key)})
+        c.JSON(http.StatusOK, gin.H{"token": base64.StdEncoding.EncodeToString(key), "jwt": jwt})
     }
 }
 
@@ -81,6 +88,12 @@ func Register(c *gin.Context, db *gorm.DB) {
 
 func InitAdmin(c *gin.Context, db *gorm.DB) {
     var adminreq LoginReq
+    var count int64
+    db.Model(&models.User{}).Count(&count)
+    if count > 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "System already initialized. Please login."})
+        return
+    }
 
     err := c.BindJSON(&adminreq)
     if err != nil {
@@ -89,11 +102,19 @@ func InitAdmin(c *gin.Context, db *gorm.DB) {
     }
 
     key, err := internal.Admin(db, adminreq.Username, []byte(adminreq.Password))
+
     if err != nil {
         c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Admin init failed: %v", err)})
         return
     }
-    c.JSON(http.StatusOK, gin.H{"token": base64.StdEncoding.EncodeToString(key)})
+
+    jwt, err := GenerateToken(adminreq.Username, "admin")
+    if err != nil {
+        c.JSON(500, gin.H{"error": "Could not generate token"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"token": base64.StdEncoding.EncodeToString(key), "jwt": jwt})
 }
 
 func InitServer(c *gin.Context, db *gorm.DB) {
