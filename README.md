@@ -7,7 +7,9 @@ a really basic implementation of a Privileged Access Management
 
 ## Usage
 
-`go run api/main.go api/endpoint.go` -- run this on a seperate terminal
+Create secrets/jwt_secret.txt, with your random jwt secret. Then:
+
+`go run api/*` -- run this on a seperate terminal
 
 `./SimplePAM admin init` -- initialize admin and server (currently only your localhost)
 
