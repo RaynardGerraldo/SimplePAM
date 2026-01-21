@@ -129,16 +129,9 @@ func Status(c *gin.Context, db *gorm.DB) {
     }
     _, err = parser.ReadUsernameDB(db, status.Username)
    
-    if status.Username == "admin" {
-        if err == nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Cant run init, admin already exists"})
-            return 
-        }
-    } else {
-        if err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "User doesnt exist."})
-            return
-        }
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "User doesnt exist."})
+        return
     }
     c.JSON(http.StatusOK, gin.H{"error": ""})
     return

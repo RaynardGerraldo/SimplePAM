@@ -30,10 +30,9 @@ func Cli() {
                 }
                 err := internal.StatusCall(username)
                 if err != nil {
-                    fmt.Fprintf(os.Stderr, "%v\n", err)
+                    fmt.Fprintf(os.Stderr, "User doesnt exist.\n")
                     os.Exit(1)
                 }
-
                 token, err := internal.LoginCall(username)
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "SSH Failed: %v\n", err)
@@ -53,10 +52,17 @@ func Cli() {
         if arg1 == "admin" {
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
+                err := internal.StatusCall(arg1)
+                if err != nil {
+                    if admin_option != "init" {
+                        fmt.Fprintf(os.Stderr, "Run init first.\n")
+                        os.Exit(1)
+                    }
+                }
                 if admin_option == "init" {
                     err := internal.StatusCall(arg1)
-                    if err != nil {
-                        fmt.Fprintf(os.Stderr, "%v\n", err)
+                    if err == nil {
+                        fmt.Fprintf(os.Stderr, "Admin already exists.\n")
                         os.Exit(1)
                     }
                     key, err := internal.AdminCall()
@@ -71,11 +77,6 @@ func Cli() {
                     }
                     fmt.Println(success)
                 } else if admin_option == "add-user" {
-                    err := internal.StatusCall(arg1)
-                    if err == nil {
-                        fmt.Fprintf(os.Stderr, "Run init first.\n")
-                        os.Exit(1)
-                    }
                     if len(os.Args) > 3 {
                         username = os.Args[3]
                         err := internal.StatusCall(username)
