@@ -29,6 +29,10 @@ func main() {
     r.POST("/initadmin", func(c *gin.Context) {
         InitAdmin(c, db)
     })
+    
+    r.GET("/ws/echo", func(c *gin.Context) {
+        echoHandler(c)
+    })
 
     protected := r.Group("/")
     protected.Use(AuthMiddleware())
