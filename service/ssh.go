@@ -7,7 +7,8 @@ import (
     "fmt"
     "golang.org/x/crypto/ssh"
     "os"
-    "golang.org/x/term"
+    "io"
+    //"golang.org/x/term"
     tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -27,7 +28,7 @@ type TUI struct {
     Target *models.Server
 }
 
-func internalSSH(username string, password string, ip string) error {
+func InternalSSH(reader io.Reader, writer io.Writer, username string, password string, ip string) error {
     config := &ssh.ClientConfig {
         User: username,
         Auth: []ssh.AuthMethod {
@@ -48,37 +49,52 @@ func internalSSH(username string, password string, ip string) error {
     }
     defer session.Close()
 
-    // looks and interactive 
-    fd := int(os.Stdin.Fd())
-    state, err := term.MakeRaw(fd)
-    if err != nil {
-        return fmt.Errorf("failed to set raw mode: %w", err)
-    }
-    defer term.Restore(fd,state)
-
-    w, h, err := term.GetSize(fd)
-    if err != nil {
-        return fmt.Errorf("failed to get term size: %w", err)
-    }
-
-    modes := ssh.TerminalModes {
-        ssh.ECHO: 1,
-        ssh.TTY_OP_ISPEED: 14400,
-        ssh.TTY_OP_OSPEED: 14400,
-    }
-
-    if err := session.RequestPty("xterm-256color", h, w, modes); err != nil {
-        return fmt.Errorf("request pty failed: %w", err)
-    }
-
-    session.Stdout = os.Stdout
-    session.Stderr = os.Stderr
-    session.Stdin = os.Stdin
+    session.Stdin = reader
+    session.Stdout = writer
 
     if err := session.Shell(); err != nil {
         return fmt.Errorf("failed to start shell: %w", err)
     }
 
+    /*if local {
+        // looks and interactive 
+        fd := int(os.Stdin.Fd())
+        state, err := term.MakeRaw(fd)
+        if err != nil {
+            return fmt.Errorf("failed to set raw mode: %w", err)
+        }
+        defer term.Restore(fd,state)
+
+        w, h, err := term.GetSize(fd)
+        if err != nil {
+            return fmt.Errorf("failed to get term size: %w", err)
+        }
+
+        modes := ssh.TerminalModes {
+            ssh.ECHO: 1,
+            ssh.TTY_OP_ISPEED: 14400,
+            ssh.TTY_OP_OSPEED: 14400,
+        }
+
+        if err := session.RequestPty("xterm-256color", h, w, modes); err != nil {
+            return fmt.Errorf("request pty failed: %w", err)
+        }
+
+        session.Stdout = os.Stdout
+        session.Stderr = os.Stderr
+        session.Stdin = os.Stdin
+
+        if err := session.Shell(); err != nil {
+            return fmt.Errorf("failed to start shell: %w", err)
+        }
+    } else {
+        session.Stdin = reader
+        session.Stdout = writer
+
+        if err := session.Shell(); err != nil {
+            return fmt.Errorf("failed to start shell: %w", err)
+        }
+    }*/
     return session.Wait()
 }
 
@@ -214,7 +230,7 @@ func SSH(key string, username string, allowed []string, servers_list []models.Se
             continue
         }
 
-        err = internalSSH(target.Name, string(password), target.IP)
+        err = InternalSSH(os.Stdin, os.Stdout, target.Name, string(password), target.IP)
 
         if err != nil {
             fmt.Errorf("SSH connection error: %w", err)

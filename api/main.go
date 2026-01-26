@@ -34,6 +34,10 @@ func main() {
         echoHandler(c)
     })
 
+    r.GET("/ws/ssh", func(c *gin.Context) {
+        SSHHandler(c, db)
+    })
+
     protected := r.Group("/")
     protected.Use(AuthMiddleware())
 
@@ -55,5 +59,6 @@ func main() {
         })
     }
     fmt.Println("PAM Server is running on localhost:8080...")
+    r.Static("/web", "./frontend")
     r.Run(":8080") 
 }
