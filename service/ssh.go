@@ -51,50 +51,22 @@ func InternalSSH(reader io.Reader, writer io.Writer, username string, password s
 
     session.Stdin = reader
     session.Stdout = writer
+    session.Stderr = writer
+
+    modes := ssh.TerminalModes {
+        ssh.ECHO: 1,
+        ssh.TTY_OP_ISPEED: 14400,
+        ssh.TTY_OP_OSPEED: 14400,
+    }
+
+    if err := session.RequestPty("xterm-256color", 40, 80, modes); err != nil {
+        return fmt.Errorf("request pty failed: %w", err)
+    }
 
     if err := session.Shell(); err != nil {
         return fmt.Errorf("failed to start shell: %w", err)
     }
-
-    /*if local {
-        // looks and interactive 
-        fd := int(os.Stdin.Fd())
-        state, err := term.MakeRaw(fd)
-        if err != nil {
-            return fmt.Errorf("failed to set raw mode: %w", err)
-        }
-        defer term.Restore(fd,state)
-
-        w, h, err := term.GetSize(fd)
-        if err != nil {
-            return fmt.Errorf("failed to get term size: %w", err)
-        }
-
-        modes := ssh.TerminalModes {
-            ssh.ECHO: 1,
-            ssh.TTY_OP_ISPEED: 14400,
-            ssh.TTY_OP_OSPEED: 14400,
-        }
-
-        if err := session.RequestPty("xterm-256color", h, w, modes); err != nil {
-            return fmt.Errorf("request pty failed: %w", err)
-        }
-
-        session.Stdout = os.Stdout
-        session.Stderr = os.Stderr
-        session.Stdin = os.Stdin
-
-        if err := session.Shell(); err != nil {
-            return fmt.Errorf("failed to start shell: %w", err)
-        }
-    } else {
-        session.Stdin = reader
-        session.Stdout = writer
-
-        if err := session.Shell(); err != nil {
-            return fmt.Errorf("failed to start shell: %w", err)
-        }
-    }*/
+    
     return session.Wait()
 }
 
