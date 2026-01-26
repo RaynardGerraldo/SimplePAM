@@ -99,7 +99,7 @@ func SSHHandler(c *gin.Context, db *gorm.DB) {
 
     rw := &WebSocketRW{Conn: conn}
 
-    err = service.InternalSSH(rw, rw, server.Name, string(password), server.IP)
+    err = service.InternalSSH(rw, rw, server.Name, string(password), server.IP, server.Port)
     
     if err != nil {
         conn.WriteMessage(websocket.TextMessage, []byte("SSH Error: "+err.Error()))

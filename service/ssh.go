@@ -28,7 +28,7 @@ type TUI struct {
     Target *models.Server
 }
 
-func InternalSSH(reader io.Reader, writer io.Writer, username string, password string, ip string) error {
+func InternalSSH(reader io.Reader, writer io.Writer, username string, password string, ip string, port uint16) error {
     config := &ssh.ClientConfig {
         User: username,
         Auth: []ssh.AuthMethod {
@@ -37,7 +37,8 @@ func InternalSSH(reader io.Reader, writer io.Writer, username string, password s
         HostKeyCallback: ssh.InsecureIgnoreHostKey(),
     }
 
-    client, err := ssh.Dial("tcp", ip+":22", config)
+    address := fmt.Sprintf("%s:%d", ip, port)   
+    client, err := ssh.Dial("tcp", address, config)
     if err != nil {
         return fmt.Errorf("failed to dial: %w", err)
     }
@@ -202,7 +203,7 @@ func SSH(key string, username string, allowed []string, servers_list []models.Se
             continue
         }
 
-        err = InternalSSH(os.Stdin, os.Stdout, target.Name, string(password), target.IP)
+        err = InternalSSH(os.Stdin, os.Stdout, target.Name, string(password), target.IP, target.Port)
 
         if err != nil {
             fmt.Errorf("SSH connection error: %w", err)

@@ -42,6 +42,10 @@ func main() {
     protected.Use(AuthMiddleware())
 
     {
+        protected.POST("/addtouser", func(c *gin.Context) {
+            AddtoUser(c, db)
+        })
+
         protected.POST("/initserver", func(c *gin.Context) {
             InitServer(c, db)
         })

@@ -18,4 +18,5 @@ type Server struct {
     Name     string `gorm:"not null" json:"name"`
     IP       string `gorm:"not null" json:"ip"`
     Password []byte `gorm:"not null" json:"password"`
+    Port     uint16 `gorm:"not null" json:"port"`
 }

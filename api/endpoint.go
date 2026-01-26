@@ -23,12 +23,21 @@ type RegReq struct {
 }
 
 type ServerReq struct {
+    ServerName string `json:"servername"`
     Username string `json:"username"`
+    Password string `json:"password"`
     Key string `json:"key"`
+    IP string `json:"ip"`
+    Port uint16 `json:"port"`
 }
 
 type StatusReq struct {
     Username string `json:"username"`
+}
+
+type AddtoUserReq struct {
+    Username string `json:"username"`
+    ServerName string `json:"servername"`
 }
 
 func Login(c *gin.Context, db *gorm.DB) {
@@ -118,7 +127,7 @@ func InitAdmin(c *gin.Context, db *gorm.DB) {
 }
 
 func InitServer(c *gin.Context, db *gorm.DB) {
-    var serverreq RegReq
+    var serverreq ServerReq
 
     err := c.BindJSON(&serverreq)
     if err != nil {
@@ -132,7 +141,7 @@ func InitServer(c *gin.Context, db *gorm.DB) {
         return
     }
    
-    err = internal.Server(db, serverreq.Username, []byte(serverreq.Password), decodedKey)
+    err = internal.Server(db, serverreq.ServerName, serverreq.Username, []byte(serverreq.Password), decodedKey, serverreq.IP, serverreq.Port)
 
     if err != nil {
         c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Server init failed: %v", err)})
@@ -182,4 +191,30 @@ func ServersList(c *gin.Context, db *gorm.DB) {
         return
     }
     c.JSON(http.StatusOK, gin.H{"list": list})   
+}
+
+func AddtoUser(c *gin.Context, db *gorm.DB) {
+    var toadd AddtoUserReq
+    err := c.BindJSON(&toadd)
+
+    var user models.User
+    result := db.Where("username = ?", toadd.Username).First(&user)
+    if result.Error != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Username %s not found: %w", toadd.Username, result.Error)})
+        return 
+    }
+
+    server, err := parser.CheckDB(db, toadd.ServerName)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Server %s not found: %w", toadd.ServerName, err)})
+        return
+    }
+
+    err = db.Model(&user).Association("Servers").Append(server)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Write failed: %w", err)})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"success": "Server added to user."})
 }

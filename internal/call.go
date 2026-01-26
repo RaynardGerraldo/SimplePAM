@@ -10,7 +10,6 @@ import (
     "fmt"
 )
 
-
 type LoginResp struct {
     Token string `json:"token"`
     Jwt   string `json:"jwt"`
@@ -211,8 +210,20 @@ func AdminCall() (string, string, error){
 }
 
 func ServerCall(key string, jwt string) (string, error) {
+    var serverName string
     var name string
-    fmt.Println("\nTry it out with your localhost")
+    var ip string
+    var port uint16
+    //fmt.Println("\nTry it out with your localhost")
+    fmt.Printf("Server Name in PAM? (ex: server-prod) ")
+    fmt.Scan(&serverName)
+
+    fmt.Printf("Server IP? (default is localhost) ")
+    fmt.Scan(&ip)
+
+    fmt.Printf("Server Port? (default is 22) ")
+    fmt.Scan(&port)
+
     fmt.Printf("Server username? ")
     fmt.Scan(&name)
 
@@ -221,10 +232,13 @@ func ServerCall(key string, jwt string) (string, error) {
         return "", err
     }
     
-    values := map[string]string{
+    values := map[string]any{
+        "servername": serverName,
         "username": name,
         "password": string(password),
         "key": key,
+        "ip": ip,
+        "port": port,
     }
 
     jsondata, err := json.Marshal(values)
@@ -365,3 +379,32 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     return allowed_servers, servers_list, nil
 }
 
+func AddtoUserCall(username string, servername string, jwt string) error {
+    values := map[string]string{
+        "username": username,
+        "servername": servername,
+    }
+    jsondata, err := json.Marshal(values)
+
+    if err != nil {
+        return err
+    }
+
+    req, err := http.NewRequest("POST", "http://localhost:8080/addtouser", bytes.NewBuffer(jsondata))
+
+    if err != nil {
+        return err
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer " + jwt)
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    
+    if err != nil {
+        return fmt.Errorf("failed to connect to PAM server: %w", err)
+    }
+    defer resp.Body.Close()
+
+    return nil
+}
