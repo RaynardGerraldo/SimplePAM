@@ -8,7 +8,7 @@ import (
     "fmt"
 )
 
-func Register(db *gorm.DB, username string, password []byte, DEK []byte) error {
+func Register(db *gorm.DB, username string, password []byte, DEK []byte, serverName string) error {
     // check for dupe usernames
     dupe, err := parser.ReadUsernameDB(db, username)
     if err == nil {
@@ -34,9 +34,9 @@ func Register(db *gorm.DB, username string, password []byte, DEK []byte) error {
     user.Hashed = hashed
     user.Salt = salt
     user.Master_Key = master_key
-    server, err := parser.CheckDB(db, "server-prod")
+    server, err := parser.CheckDB(db, serverName)
     if err != nil {
-        return fmt.Errorf("server-prod not found: %w", err)
+        return fmt.Errorf("%s not found: %w", serverName, err)
     }
     user.Servers = append(user.Servers, server)
 

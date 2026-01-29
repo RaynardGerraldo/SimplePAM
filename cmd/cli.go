@@ -65,17 +65,12 @@ func Cli() {
                         fmt.Fprintf(os.Stderr, "Admin already exists.\n")
                         os.Exit(1)
                     }
-                    token, jwt, err := internal.AdminCall()
+                    _, _, err = internal.AdminCall()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
-                    success, err := internal.ServerCall(token, jwt)
-                    if err != nil {
-                        fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
-                        os.Exit(1)
-                    }
-                    fmt.Println(success)
+                    fmt.Println("Admin initialized.")
                 } else if admin_option == "add-user" {
                     if len(os.Args) > 3 {
                         username = os.Args[3]
