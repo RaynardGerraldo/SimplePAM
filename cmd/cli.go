@@ -125,15 +125,14 @@ func Cli() {
                     fmt.Printf("Server name to add to user? ")
                     fmt.Scan(&servername)
 
-
                     err = internal.AddtoUserCall(username, servername, jwt)
-                    
+
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to add server to user", err)
                         os.Exit(1)
                     }
 
-                    //fmt.Println("Server added to user.")
+                    fmt.Println("Server added to user.")
                 } else {
                     fmt.Println("Invalid argument.")
                 }

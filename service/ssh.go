@@ -73,7 +73,7 @@ func InternalSSH(reader io.Reader, writer io.Writer, username string, password s
 
 func initialModel(username string, key []byte, server_list []models.Server, allowed []string) (TUI,error) {
     return TUI{
-        Choices: []string{"server-prod", "server-test", "server-misc"},
+        Choices: allowed,
         Selected: make(map[int]struct{}),
         Server_List: server_list,
         Allowed: allowed,
