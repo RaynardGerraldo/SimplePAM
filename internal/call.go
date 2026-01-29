@@ -306,12 +306,6 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     }
     defer resp.Body.Close()
 
-    /*resp, err := http.Post("http://localhost:8080/allowedservers", "application/json", bytes.NewBuffer(jsondata))
-    if err != nil {
-        return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
-    }
-    defer resp.Body.Close()*/
-
     body,_ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
@@ -345,12 +339,6 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     }
     defer resp.Body.Close()
 
-    /*resp, err = http.Get("http://localhost:8080/serverslist")
-    if err != nil {
-        return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
-    }
-    defer resp.Body.Close()*/
-
     body,_ = ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
@@ -371,7 +359,15 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     return allowed_servers, servers_list, nil
 }
 
-func AddtoUserCall(username string, servername string, jwt string) error {
+func AddtoUserCall(jwt string) error {
+    var username string
+    var servername string
+    fmt.Printf("Username? ")
+    fmt.Scan(&username)
+
+    fmt.Printf("Server name to add to user? ")
+    fmt.Scan(&servername)
+
     values := map[string]string{
         "username": username,
         "servername": servername,
