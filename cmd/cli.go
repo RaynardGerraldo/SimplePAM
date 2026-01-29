@@ -98,6 +98,41 @@ func Cli() {
                     } else {
                         fmt.Println("Specify user for add-user.")
                     }
+                } else if admin_option == "add-server" {
+                    token, jwt, err := internal.LoginCall(arg1)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
+                        os.Exit(1)
+                    }
+
+                    success, err := internal.ServerCall(token, jwt)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
+                        os.Exit(1)
+                    }
+                    fmt.Println(success)
+                } else if admin_option == "srv-to-user" {
+                    var username string
+                    var servername string
+                    _, jwt, err := internal.LoginCall(arg1)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
+                        os.Exit(1)
+                    }
+                    fmt.Printf("Username? ")
+                    fmt.Scan(&username)
+
+                    fmt.Printf("Server name to add to user? ")
+                    fmt.Scan(&servername)
+
+                    err = internal.AddtoUserCall(username, servername, jwt)
+
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Failed to add server to user", err)
+                        os.Exit(1)
+                    }
+
+                    fmt.Println("Server added to user.")
                 } else {
                     fmt.Println("Invalid argument.")
                 }

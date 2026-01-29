@@ -22,7 +22,6 @@ func Register(db *gorm.DB, username string, password []byte, DEK []byte) error {
         }
     }
 
-
     var user models.User
     user.Username = username
 

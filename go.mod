@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/gorilla/websocket v1.5.3
 	golang.org/x/crypto v0.47.0
 	golang.org/x/term v0.39.0
 	gorm.io/driver/sqlite v1.6.0

@@ -29,11 +29,23 @@ func main() {
     r.POST("/initadmin", func(c *gin.Context) {
         InitAdmin(c, db)
     })
+    
+    r.GET("/ws/echo", func(c *gin.Context) {
+        echoHandler(c)
+    })
+
+    r.GET("/ws/ssh", func(c *gin.Context) {
+        SSHHandler(c, db)
+    })
 
     protected := r.Group("/")
     protected.Use(AuthMiddleware())
 
     {
+        protected.POST("/addtouser", func(c *gin.Context) {
+            AddtoUser(c, db)
+        })
+
         protected.POST("/initserver", func(c *gin.Context) {
             InitServer(c, db)
         })
@@ -51,5 +63,6 @@ func main() {
         })
     }
     fmt.Println("PAM Server is running on localhost:8080...")
+    r.Static("/web", "./frontend")
     r.Run(":8080") 
 }

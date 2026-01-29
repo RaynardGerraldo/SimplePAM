@@ -15,4 +15,10 @@ Create secrets/jwt_secret.txt, with your random jwt secret. Then:
 
 `./SimplePAM admin add-user <name>` -- add first user for ssh access to server
 
-`./SimplePAM user <user's name>` -- login to allowed server (currently only server-prod)
+`./SimplePAM admin add-server` -- add new server
+
+`./SimplePAM admin srv-to-user` -- assign server to user
+
+`./SimplePAM user <name>` -- PAM TUI
+
+http://127.0.0.1:8080/web/ -- PAM frontend

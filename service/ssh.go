@@ -7,7 +7,8 @@ import (
     "fmt"
     "golang.org/x/crypto/ssh"
     "os"
-    "golang.org/x/term"
+    "io"
+    //"golang.org/x/term"
     tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -27,7 +28,7 @@ type TUI struct {
     Target *models.Server
 }
 
-func internalSSH(username string, password string, ip string) error {
+func InternalSSH(reader io.Reader, writer io.Writer, username string, password string, ip string, port uint16) error {
     config := &ssh.ClientConfig {
         User: username,
         Auth: []ssh.AuthMethod {
@@ -36,7 +37,8 @@ func internalSSH(username string, password string, ip string) error {
         HostKeyCallback: ssh.InsecureIgnoreHostKey(),
     }
 
-    client, err := ssh.Dial("tcp", ip+":22", config)
+    address := fmt.Sprintf("%s:%d", ip, port)   
+    client, err := ssh.Dial("tcp", address, config)
     if err != nil {
         return fmt.Errorf("failed to dial: %w", err)
     }
@@ -48,18 +50,9 @@ func internalSSH(username string, password string, ip string) error {
     }
     defer session.Close()
 
-    // looks and interactive 
-    fd := int(os.Stdin.Fd())
-    state, err := term.MakeRaw(fd)
-    if err != nil {
-        return fmt.Errorf("failed to set raw mode: %w", err)
-    }
-    defer term.Restore(fd,state)
-
-    w, h, err := term.GetSize(fd)
-    if err != nil {
-        return fmt.Errorf("failed to get term size: %w", err)
-    }
+    session.Stdin = reader
+    session.Stdout = writer
+    session.Stderr = writer
 
     modes := ssh.TerminalModes {
         ssh.ECHO: 1,
@@ -67,24 +60,20 @@ func internalSSH(username string, password string, ip string) error {
         ssh.TTY_OP_OSPEED: 14400,
     }
 
-    if err := session.RequestPty("xterm-256color", h, w, modes); err != nil {
+    if err := session.RequestPty("xterm-256color", 40, 80, modes); err != nil {
         return fmt.Errorf("request pty failed: %w", err)
     }
-
-    session.Stdout = os.Stdout
-    session.Stderr = os.Stderr
-    session.Stdin = os.Stdin
 
     if err := session.Shell(); err != nil {
         return fmt.Errorf("failed to start shell: %w", err)
     }
-
+    
     return session.Wait()
 }
 
 func initialModel(username string, key []byte, server_list []models.Server, allowed []string) (TUI,error) {
     return TUI{
-        Choices: []string{"server-prod", "server-test", "server-misc"},
+        Choices: allowed,
         Selected: make(map[int]struct{}),
         Server_List: server_list,
         Allowed: allowed,
@@ -214,7 +203,7 @@ func SSH(key string, username string, allowed []string, servers_list []models.Se
             continue
         }
 
-        err = internalSSH(target.Name, string(password), target.IP)
+        err = InternalSSH(os.Stdin, os.Stdout, target.Name, string(password), target.IP, target.Port)
 
         if err != nil {
             fmt.Errorf("SSH connection error: %w", err)
