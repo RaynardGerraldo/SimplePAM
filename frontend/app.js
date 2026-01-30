@@ -9,6 +9,43 @@ const MEMORY = {
 const API_URL = "http://localhost:8080";
 const WS_URL = "ws://localhost:8080";
 
+window.onload = () => {
+    restoreSession();
+};
+
+function saveSession(data) {
+    sessionStorage.setItem("pam_session", JSON.stringify({
+        token: data.token,
+        dek: data.dek,
+        username: data.username
+    }));
+}
+
+function restoreSession() {
+    const saved = sessionStorage.getItem("pam_session");
+    if (saved) {
+        const data = JSON.parse(saved);
+        
+        MEMORY.token = data.token;
+        MEMORY.dek = data.dek;
+        MEMORY.username = data.username;
+
+        showScreen("server-screen");
+        document.getElementById("welcome-msg").innerText = `Welcome, ${data.username}`;
+        
+        if (data.username.toLowerCase() === "admin") {
+            document.getElementById("admin-btn").classList.remove("hidden");
+        }
+        
+        loadServers(data.username);
+    }
+}
+
+function clearSession() {
+    sessionStorage.removeItem("pam_session");
+    location.reload();
+}
+
 function showScreen(id) {
     ['login-screen', 'server-screen', 'admin-screen', 'terminal-screen'].forEach(s => {
         document.getElementById(s).classList.add('hidden');
@@ -59,6 +96,13 @@ async function handleLogin() {
         MEMORY.dek = data.token; 
         MEMORY.username = username;
 
+        // save session to storage
+        saveSession({
+            token: data.jwt,
+            dek: data.token,
+            username: username
+        });
+
         document.getElementById("welcome-msg").innerText = `Welcome, ${username}`;
         
         if (username.toLowerCase() === "admin") {
@@ -75,7 +119,7 @@ async function handleLogin() {
 }
 
 function logout() {
-    location.reload(); 
+    clearSession();
 }
 
 function showAdminDashboard() {
