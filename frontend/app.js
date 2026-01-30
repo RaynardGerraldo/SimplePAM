@@ -67,9 +67,9 @@ function openTab(tabId, btn) {
     document.getElementById(tabId).classList.remove('hidden');
     if(btn) btn.classList.add('active');
     
-    // Refresh dropdown if opening users tab
-    if (tabId === 'tab-users') {
-        updateServerDropdowns();
+    // Refresh dropdown if opening users or access tab
+    if (tabId === 'tab-users' || tabId === 'tab-access'){
+        updateServerDropdowns(tabId);
     }
 }
 
@@ -124,7 +124,6 @@ function logout() {
 
 function showAdminDashboard() {
     showScreen("admin-screen");
-    updateServerDropdowns();
     document.querySelector('.tab-btn').click(); 
 }
 
@@ -133,8 +132,13 @@ function showServerList() {
     loadServers(MEMORY.username);
 }
 
-async function updateServerDropdowns() {
-    const select = document.getElementById("new-user-server");
+async function updateServerDropdowns(tabId) {
+    let select;
+    if (tabId === 'tab-users') {
+        select = document.getElementById("new-user-server");
+    } else if (tabId === 'tab-access') {
+        select = document.getElementById("assign-server");
+    }
     
     try {
         const res = await fetch(`${API_URL}/serverslist`, {
@@ -148,7 +152,7 @@ async function updateServerDropdowns() {
         
         const currentVal = select.value;
         
-        select.innerHTML = '<option value="" disabled selected>Select Initial Server (Required)</option>';
+        select.innerHTML = '<option value="" disabled selected>Select Server (required)</option>';
         
         if (data.list) {
             data.list.forEach(srv => {
@@ -171,7 +175,7 @@ async function adminAddUser() {
     const s = document.getElementById("new-user-server").value; // Now gets value from Dropdown
 
     if(!u || !p) return setStatus("Username and Password required", true);
-    if(!s) return setStatus("Initial Server is MANDATORY", true);
+    if(!s) return setStatus("Server is required", true);
 
     try {
         const res = await fetch(`${API_URL}/register`, {
