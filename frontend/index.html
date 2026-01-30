@@ -8,39 +8,132 @@
         body { background-color: #1e1e1e; color: #fff; font-family: monospace; padding: 20px; }
         .hidden { display: none !important; }
         
-        #login-screen, #server-screen { max-width: 400px; margin: 50px auto; text-align: center; }
-        input { padding: 10px; margin: 10px; width: 80%; background: #333; color: white; border: 1px solid #555; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background: #0056b3; }
-
-        .server-btn { display: block; width: 100%; margin: 10px 0; background: #28a745; }
+        /* Layout Utilities */
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { border: 1px solid #333; background: #252526; padding: 20px; margin-bottom: 20px; border-radius: 4px; }
+        .card h3 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; color: #4ec9b0; }
         
-        #terminal-container { width: 100%; height: 90vh; }
+        /* Navigation Tabs */
+        .admin-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .tab-btn { flex: 1; background: #2d2d2d; color: #888; border: 1px solid #333; padding: 10px; transition: all 0.2s; cursor: pointer; }
+        .tab-btn:hover { background: #383838; color: white; }
+        .tab-btn.active { background: #007bff; color: white; border-color: #007bff; }
+
+        /* Inputs & Forms */
+        .form-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        input, select { 
+            flex: 1; 
+            padding: 8px; 
+            background: #3c3c3c; 
+            color: #ccc; 
+            border: 1px solid #555; 
+            font-family: monospace;
+        }
+        input:focus, select:focus { outline: none; border-color: #007bff; }
+        
+        /* Buttons */
+        button { padding: 8px 16px; border: none; cursor: pointer; font-family: monospace; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-danger { background: #ce9178; color: black; }
+        .btn-success { background: #4ec9b0; color: black; }
+        .btn-nav { background: #333; color: white; border: 1px solid #555; }
+
+        /* Login Screen specific */
+        #login-screen { max-width: 400px; margin: 50px auto; text-align: center; }
+        #login-screen input { width: 80%; margin: 10px auto; display: block; }
+        
+        /* Server List specific */
+        .server-btn { display: block; width: 100%; margin: 10px 0; background: #333; color: #dcdcdc; text-align: left; padding: 15px; border: 1px solid #444; }
+        .server-btn:hover { background: #444; border-color: #007bff; }
+        
+        #terminal-container { width: 100%; height: 80vh; margin-top: 10px; border: 1px solid #444; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <h2>SimplePAM Login</h2>
+    <div id="login-screen" class="container">
+        <h2>SimplePAM v1.0</h2>
         <input type="text" id="username" placeholder="Username" />
         <input type="password" id="password" placeholder="Password" />
-        <button onclick="handleLogin()">Login</button>
-        <p id="error-msg" style="color: red;"></p>
+        <button class="btn-primary" onclick="handleLogin()">AUTHENTICATE</button>
+        <p id="error-msg" style="color: #f44747; margin-top: 10px;"></p>
     </div>
 
-    <div id="server-screen" class="hidden">
-        <h2>Select Server</h2>
-        <div id="server-list"></div>
+    <div id="server-screen" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px;">
+            <h2 id="welcome-msg">Select Target</h2>
+            <div>
+                <button id="admin-btn" class="btn-success hidden" onclick="showAdminDashboard()">ADMIN PANEL</button>
+                <button class="btn-danger" onclick="logout()">LOGOUT</button>
+            </div>
+        </div>
+        <div id="server-list" style="margin-top: 20px;"></div>
     </div>
 
-    <div id="terminal-screen" class="hidden">
-        <button onclick="disconnect()" style="float: right; background: red; margin-bottom: 10px;">Disconnect</button>
+    <div id="admin-screen" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Admin Dashboard</h2>
+            <button class="btn-nav" onclick="showServerList()">← Back to List</button>
+        </div>
+
+        <div class="admin-nav">
+            <button class="tab-btn" onclick="openTab('tab-servers', this)">Register Servers</button>
+            <button class="tab-btn" onclick="openTab('tab-users', this)">Manage Users</button>
+            <button class="tab-btn" onclick="openTab('tab-access', this)">Access Control</button>
+        </div>
+
+        <div id="tab-servers" class="card admin-tab hidden">
+            <h3>Register New Server</h3>
+            <div class="form-group">
+                <input type="text" id="srv-name" placeholder="PAM Name (e.g. prod-db)">
+                <input type="text" id="srv-ip" placeholder="IP Address">
+                <input type="number" id="srv-port" placeholder="Port (22)" value="22">
+            </div>
+            <div class="form-group">
+                <input type="text" id="srv-user" placeholder="SSH Username">
+                <input type="password" id="srv-pass" placeholder="SSH Password">
+                <button class="btn-success" onclick="adminAddServer()">Init Server</button>
+            </div>
+        </div>
+
+        <div id="tab-users" class="card admin-tab hidden">
+            <h3>Add New User</h3>
+            <div class="form-group">
+                <input type="text" id="new-user-name" placeholder="New Username">
+                <input type="password" id="new-user-pass" placeholder="Password">
+            </div>
+            <div class="form-group">
+                <select id="new-user-server">
+                    <option value="" disabled selected>Select Initial Server (Required)</option>
+                    </select>
+                <button class="btn-primary" onclick="adminAddUser()">Create User</button>
+            </div>
+        </div>
+
+        <div id="tab-access" class="card admin-tab hidden">
+            <h3>Access Control</h3>
+            <p style="color: #888; font-size: 0.9em; margin-bottom: 10px;">Grant a user access to a specific server.</p>
+            <div class="form-group">
+                <input type="text" id="assign-user" placeholder="Target Username">
+                <input type="text" id="assign-server" placeholder="Target Server Name">
+                <button class="btn-primary" onclick="adminAssignServer()">Grant Access</button>
+            </div>
+        </div>
+
+        <p id="admin-status" style="color: #4ec9b0; text-align: center; height: 20px; margin-top: 20px;"></p>
+    </div>
+
+    <div id="terminal-screen" class="container hidden" style="max-width: 100%;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #4ec9b0;">Secure Shell Session</span>
+            <button class="btn-danger" onclick="disconnect()">DISCONNECT</button>
+        </div>
         <div id="terminal-container"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
-    
     <script src="app.js"></script>
 </body>
 </html>
