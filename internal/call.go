@@ -108,15 +108,20 @@ func LoginCall(username string) (string, string, error){
 }
 
 func RegisterCall(username string, key string, jwt string) (string, error) {
+    var serverName string
     password,err := parser.Prompt(username)
     if err != nil {
         return "", err
     }
 
+    fmt.Printf("Server name to assign? ")
+    fmt.Scan(&serverName)
+
     values := map[string]string{
         "username": username,
         "password": string(password),
         "key": key,
+        "servername": serverName,
     }
 
     jsondata, err := json.Marshal(values)
@@ -139,12 +144,6 @@ func RegisterCall(username string, key string, jwt string) (string, error) {
         return "", fmt.Errorf("failed to connect to PAM server: %w", err)
     }
     defer resp.Body.Close()
-
-    /*resp, err := http.Post("http://localhost:8080/register", "application/json", bytes.NewBuffer(jsondata))
-    if err != nil {
-        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
-    }
-    defer resp.Body.Close()*/
 
     body, _ := ioutil.ReadAll(resp.Body)
 
@@ -214,7 +213,6 @@ func ServerCall(key string, jwt string) (string, error) {
     var name string
     var ip string
     var port uint16
-    //fmt.Println("\nTry it out with your localhost")
     fmt.Printf("Server Name in PAM? (ex: server-prod) ")
     fmt.Scan(&serverName)
 
@@ -262,12 +260,6 @@ func ServerCall(key string, jwt string) (string, error) {
     }
     defer resp.Body.Close()
 
-    /*resp, err := http.Post("http://localhost:8080/initserver", "application/json", bytes.NewBuffer(jsondata))
-    if err != nil {
-        return "", fmt.Errorf("failed to connect to PAM server: %w", err)
-    }
-    defer resp.Body.Close()*/
-
     body,_ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
@@ -314,12 +306,6 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     }
     defer resp.Body.Close()
 
-    /*resp, err := http.Post("http://localhost:8080/allowedservers", "application/json", bytes.NewBuffer(jsondata))
-    if err != nil {
-        return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
-    }
-    defer resp.Body.Close()*/
-
     body,_ := ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
@@ -353,12 +339,6 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     }
     defer resp.Body.Close()
 
-    /*resp, err = http.Get("http://localhost:8080/serverslist")
-    if err != nil {
-        return nil, nil, fmt.Errorf("failed to connect to PAM server: %w", err)
-    }
-    defer resp.Body.Close()*/
-
     body,_ = ioutil.ReadAll(resp.Body)
 
     if resp.StatusCode != 200 {
@@ -379,7 +359,15 @@ func AllowedListCall(username string, jwt string) ([]string, []models.Server, er
     return allowed_servers, servers_list, nil
 }
 
-func AddtoUserCall(username string, servername string, jwt string) error {
+func AddtoUserCall(jwt string) error {
+    var username string
+    var servername string
+    fmt.Printf("Username? ")
+    fmt.Scan(&username)
+
+    fmt.Printf("Server name to add to user? ")
+    fmt.Scan(&servername)
+
     values := map[string]string{
         "username": username,
         "servername": servername,

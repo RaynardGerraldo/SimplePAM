@@ -7,15 +7,6 @@ import (
     "fmt"
 )
 
-func checkCreds(filename string) bool {
-    info, err := os.Stat(filename)
-    if os.IsNotExist(err) {
-        return false
-    }
-    return !info.IsDir()
-}
-
-
 func Cli() {
     username := ""
     admin_option := ""
@@ -24,10 +15,6 @@ func Cli() {
         if arg1 == "user" {
            if len(os.Args) > 2 {
                 username = os.Args[2]
-                if len(username) == 0 {
-                    fmt.Println("No username given, try again.")
-                    os.Exit(1)
-                }
                 err := internal.StatusCall(username)
                 if err != nil {
                     fmt.Fprintf(os.Stderr, "User doesnt exist.\n")
@@ -59,34 +46,29 @@ func Cli() {
                         os.Exit(1)
                     }
                 }
+                token, jwt, err := internal.LoginCall(arg1)
+                if err != nil {
+                    fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
+                    os.Exit(1)
+                }
                 if admin_option == "init" {
                     err := internal.StatusCall(arg1)
                     if err == nil {
                         fmt.Fprintf(os.Stderr, "Admin already exists.\n")
                         os.Exit(1)
                     }
-                    token, jwt, err := internal.AdminCall()
+                    _, _, err = internal.AdminCall()
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init admin: %v\n", err)
                         os.Exit(1)
                     }
-                    success, err := internal.ServerCall(token, jwt)
-                    if err != nil {
-                        fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
-                        os.Exit(1)
-                    }
-                    fmt.Println(success)
+                    fmt.Println("Admin initialized.")
                 } else if admin_option == "add-user" {
                     if len(os.Args) > 3 {
                         username = os.Args[3]
                         err := internal.StatusCall(username)
                         if err == nil {
                             fmt.Fprintf(os.Stderr, "User already exists\n")
-                            os.Exit(1)
-                        }
-                        token, jwt, err := internal.LoginCall(arg1)
-                        if err != nil {
-                            fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
                             os.Exit(1)
                         }
                         success, err := internal.RegisterCall(username, token, jwt)
@@ -99,12 +81,6 @@ func Cli() {
                         fmt.Println("Specify user for add-user.")
                     }
                 } else if admin_option == "add-server" {
-                    token, jwt, err := internal.LoginCall(arg1)
-                    if err != nil {
-                        fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
-                        os.Exit(1)
-                    }
-
                     success, err := internal.ServerCall(token, jwt)
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to init server: %v\n", err)
@@ -112,26 +88,11 @@ func Cli() {
                     }
                     fmt.Println(success)
                 } else if admin_option == "srv-to-user" {
-                    var username string
-                    var servername string
-                    _, jwt, err := internal.LoginCall(arg1)
-                    if err != nil {
-                        fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
-                        os.Exit(1)
-                    }
-                    fmt.Printf("Username? ")
-                    fmt.Scan(&username)
-
-                    fmt.Printf("Server name to add to user? ")
-                    fmt.Scan(&servername)
-
-                    err = internal.AddtoUserCall(username, servername, jwt)
-
+                    err = internal.AddtoUserCall(jwt)
                     if err != nil {
                         fmt.Fprintf(os.Stderr, "Failed to add server to user", err)
                         os.Exit(1)
                     }
-
                     fmt.Println("Server added to user.")
                 } else {
                     fmt.Println("Invalid argument.")

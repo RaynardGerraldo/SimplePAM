@@ -11,11 +11,11 @@ Create secrets/jwt_secret.txt, with your random jwt secret. Then:
 
 `go run api/*` -- run this on a seperate terminal
 
-`./SimplePAM admin init` -- initialize admin and server (currently only your localhost)
-
-`./SimplePAM admin add-user <name>` -- add first user for ssh access to server
+`./SimplePAM admin init` -- initialize admin account
 
 `./SimplePAM admin add-server` -- add new server
+
+`./SimplePAM admin add-user <name>` -- add user
 
 `./SimplePAM admin srv-to-user` -- assign server to user
 

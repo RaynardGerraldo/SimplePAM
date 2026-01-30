@@ -20,6 +20,7 @@ type RegReq struct {
     Username string `json:"username"`
     Password string `json:"password"`
     Key string `json:"key"`
+    ServerName string `json:"servername"`
 }
 
 type ServerReq struct {
@@ -86,7 +87,7 @@ func Register(c *gin.Context, db *gorm.DB) {
         return
     }
 
-    err = internal.Register(db, regreq.Username, []byte(regreq.Password), decodedKey)
+    err = internal.Register(db, regreq.Username, []byte(regreq.Password), decodedKey, regreq.ServerName)
 
     if err != nil {
         c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Register failed: %v", err)})
