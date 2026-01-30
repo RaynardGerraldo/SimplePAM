@@ -172,7 +172,7 @@ async function updateServerDropdowns(tabId) {
 async function adminAddUser() {
     const u = document.getElementById("new-user-name").value;
     const p = document.getElementById("new-user-pass").value;
-    const s = document.getElementById("new-user-server").value; // Now gets value from Dropdown
+    const s = document.getElementById("new-user-server").value; // Dropdown
 
     if(!u || !p) return setStatus("Username and Password required", true);
     if(!s) return setStatus("Server is required", true);
@@ -240,7 +240,7 @@ async function adminAddServer() {
 // 3. ASSIGN SERVER
 async function adminAssignServer() {
     const u = document.getElementById("assign-user").value;
-    const s = document.getElementById("assign-server").value;
+    const s = document.getElementById("assign-server").value; // Dropdown
 
     if(!u || !s) return setStatus("Both User and Server required", true);
 
