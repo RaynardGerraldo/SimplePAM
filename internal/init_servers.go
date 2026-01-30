@@ -55,27 +55,3 @@ func Server(db *gorm.DB, serverName string, name string, password []byte, key []
     parser.WriteDB(db, server)
     return nil
 }
-
-/*func AddtoUser(db *gorm.DB) error {
-    var username string
-    var serverName string
-
-    fmt.Printf("Username? ")
-    fmt.Scanf(&username)
-
-    var user models.User
-    result := db.Where("username = ?", username).First(&user)
-    if result.Error != nil {
-        return fmt.Errorf("Username %s not found: %w", username, err)
-    }
-
-    fmt.Printf("Server name to add to %s? ", username)
-    fmt.Scanf(&serverName)
-    
-    server, err := parser.CheckDB(db, serverName)
-    if err != nil {
-        return fmt.Errorf("%s not found: %w", serverName, err)
-    }
-    user.Servers = append(user.Servers, server)
-    return nil
-}*/
