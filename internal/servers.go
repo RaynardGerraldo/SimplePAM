@@ -27,3 +27,13 @@ func ServersList(db *gorm.DB) ([]models.Server, error) {
     
     return servers, nil
 }
+
+func UsersList(db *gorm.DB) ([]models.User, error) {
+    var users []models.User
+    result := db.Find(&users)
+    if result.Error != nil {
+        return nil, result.Error
+    }
+    
+    return users, nil
+}

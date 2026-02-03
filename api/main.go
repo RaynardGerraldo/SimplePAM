@@ -69,6 +69,10 @@ func main() {
         protected.GET("/serverslist", func(c *gin.Context) {
             ServersList(c, db)
         })
+
+        protected.GET("/userslist", func(c *gin.Context) {
+            UsersList(c, db)
+        })
     }
     fmt.Println("PAM Server is running on localhost:8080...")
     r.Static("/web", "./frontend")

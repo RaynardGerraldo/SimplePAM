@@ -194,6 +194,15 @@ func ServersList(c *gin.Context, db *gorm.DB) {
     c.JSON(http.StatusOK, gin.H{"list": list})   
 }
 
+func UsersList(c *gin.Context, db *gorm.DB) {
+    list, err := internal.UsersList(db)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("Failed to get user list: %v", err)})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"list": list})   
+}
+
 func AddtoUser(c *gin.Context, db *gorm.DB) {
     var toadd AddtoUserReq
     err := c.BindJSON(&toadd)
