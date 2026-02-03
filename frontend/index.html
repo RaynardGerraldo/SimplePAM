@@ -78,9 +78,24 @@
         </div>
 
         <div class="admin-nav">
+            <button class="tab-btn" onclick="openTab('tab-list', this)">List</button>
             <button class="tab-btn" onclick="openTab('tab-servers', this)">Register Servers</button>
             <button class="tab-btn" onclick="openTab('tab-users', this)">Manage Users</button>
             <button class="tab-btn" onclick="openTab('tab-access', this)">Access Control</button>
+        </div>
+
+        <div id="tab-list" class="card admin-tab hidden">
+            <h3>List of Servers and Users</h3>
+            <div class="admin-nav">
+                <button class="tab-btn" onclick="openListTab('tab-list-servers', this)">List Servers</button>
+                <button class="tab-btn" onclick="openListTab('tab-list-users', this)">List Users</button>
+            </div>
+            <div id="tab-list-servers" class="card admin-tab-list hidden">
+                <ul id="servers-list"></ul>
+            </div>
+            <div id="tab-list-users" class="card admin-tab-list hidden">
+                <ul id="users-list"></ul>
+            </div>
         </div>
 
         <div id="tab-servers" class="card admin-tab hidden">

@@ -125,6 +125,80 @@ function logout() {
 function showAdminDashboard() {
     showScreen("admin-screen");
     document.querySelector('.tab-btn').click(); 
+    loadUsersList();
+    loadServersList();
+}
+
+function openListTab(tabId, btn) {
+    document.querySelectorAll('.admin-tab-list').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.admin-nav .tab-btn').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(tabId).classList.remove('hidden');
+    if(btn) btn.classList.add('active');
+}
+
+async function loadUsersList() {
+    const listUl = document.getElementById("users-list");
+    listUl.innerHTML = "<p style='color:#665;'>Loading...</p>";
+    
+    try {
+        const res = await fetch(`${API_URL}/userslist`, {
+            method: "GET",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + MEMORY.token 
+            }
+        });
+
+        const data = await res.json();
+        
+        listUl.innerHTML = "";
+        if(!data.list || data.list.length === 0) {
+            listUl.innerHTML = "<p style='color:#888;'>No users found.</p>";
+            return;
+        }
+
+        data.list.forEach(user => {
+            const li = document.createElement("li");
+            li.innerText = user.username;
+            listUl.appendChild(li);
+        });
+
+    } catch (err) {
+        listUl.innerHTML = "Failed to load users";
+    }
+}
+
+async function loadServersList() {
+    const listUl = document.getElementById("servers-list");
+    listUl.innerHTML = "<p style='color:#665;'>Loading...</p>";
+    
+    try {
+        const res = await fetch(`${API_URL}/serverslist`, {
+            method: "GET",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + MEMORY.token 
+            }
+        });
+
+        const data = await res.json();
+        
+        listUl.innerHTML = "";
+        if(!data.list || data.list.length === 0) {
+            listUl.innerHTML = "<p style='color:#888;'>No servers found.</p>";
+            return;
+        }
+
+        data.list.forEach(server => {
+            const li = document.createElement("li");
+            li.innerText = `${server.server} (${server.ip})`;
+            listUl.appendChild(li);
+        });
+
+    } catch (err) {
+        listUl.innerHTML = "Failed to load servers";
+    }
 }
 
 function showServerList() {
@@ -265,7 +339,7 @@ async function adminAssignServer() {
 
 async function loadServers(username) {
     const listDiv = document.getElementById("server-list");
-    listDiv.innerHTML = "<p style='color:#666;'>Loading...</p>";
+    listDiv.innerHTML = "<p style='color:#665;'>Loading...</p>";
     
     try {
         const res = await fetch(`${API_URL}/allowedservers`, {
@@ -288,7 +362,7 @@ async function loadServers(username) {
         data.allowed.forEach(serverName => {
             const btn = document.createElement("button");
             btn.className = "server-btn";
-            btn.innerHTML = `<span style="color: #4ec9b0; font-weight: bold;">> ${serverName}</span> <span style="float: right; color: #666;">SSH</span>`;
+            btn.innerHTML = `<span style="color: #4ec9b0; font-weight: bold;">> ${serverName}</span> <span style="float: right; color: #665;">SSH</span>`;
             btn.onclick = () => startSession(serverName);
             listDiv.appendChild(btn);
         });
