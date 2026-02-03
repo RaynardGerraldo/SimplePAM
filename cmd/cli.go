@@ -37,6 +37,8 @@ func Cli() {
         }
 
         if arg1 == "admin" {
+            var token string
+            var jwt string
             if len(os.Args) > 2 {
                 admin_option = os.Args[2]
                 err := internal.StatusCall(arg1)
@@ -46,10 +48,12 @@ func Cli() {
                         os.Exit(1)
                     }
                 }
-                token, jwt, err := internal.LoginCall(arg1)
-                if err != nil {
-                    fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
-                    os.Exit(1)
+                if admin_option != "init" {
+                    token, jwt, err = internal.LoginCall(arg1)
+                    if err != nil {
+                        fmt.Fprintf(os.Stderr, "Cant login to admin: %v\n", err)
+                        os.Exit(1)
+                    }
                 }
                 if admin_option == "init" {
                     err := internal.StatusCall(arg1)

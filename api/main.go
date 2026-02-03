@@ -2,9 +2,11 @@ package main
 
 import (
     "SimplePAM/parser"
+    "github.com/gin-contrib/cors"
     "github.com/gin-gonic/gin"
     "fmt"
     "os"
+    "time"
 )
 
 func main() {
@@ -19,6 +21,13 @@ func main() {
     r.Use(gin.Recovery())
 
     r.Use(Audit())
+
+    r.Use(cors.New(cors.Config{
+        AllowOrigins:    []string{"http://localhost:8080"},
+        AllowMethods:    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"},
+        AllowHeaders:    []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+        MaxAge:          12 * time.Hour,
+    }))
 
     r.POST("/login", func(c *gin.Context) {
         Login(c, db)
@@ -40,7 +49,6 @@ func main() {
 
     protected := r.Group("/")
     protected.Use(AuthMiddleware())
-
     {
         protected.POST("/addtouser", func(c *gin.Context) {
             AddtoUser(c, db)
